@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A316D5912EFEBA78005C3683 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A316D5902EFEBA78005C3683 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		A39941402EFAC19E00C13F98 /* new earth lord1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "new earth lord1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A316D5912EFEBA78005C3683 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "new earth lord1";
 			packageProductDependencies = (
+				A316D5902EFEBA78005C3683 /* Supabase */,
 			);
 			productName = "new earth lord1";
 			productReference = A39941402EFAC19E00C13F98 /* new earth lord1.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = A39941372EFAC19E00C13F98;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A316D58F2EFEBA78005C3683 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A39941412EFAC19E00C13F98 /* Products */;
 			projectDirPath = "";
@@ -334,6 +343,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A316D58F2EFEBA78005C3683 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A316D5902EFEBA78005C3683 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A316D58F2EFEBA78005C3683 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A39941382EFAC19E00C13F98 /* Project object */;
 }
