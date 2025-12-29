@@ -21,13 +21,13 @@ struct RootView: View {
                 // 启动页（传入认证管理器以检查会话）
                 SplashView(authManager: authManager, isFinished: $splashFinished)
                     .transition(.opacity)
-            } else if authManager.isAuthenticated {
-                // 已认证 -> 显示主界面
+            } else if authManager.isAuthenticated && !authManager.needsPasswordSetup {
+                // 已认证且已完成密码设置 -> 显示主界面
                 MainTabView()
                     .environmentObject(authManager)
                     .transition(.opacity)
             } else {
-                // 未认证 -> 显示登录/注册页
+                // 未认证或需要设置密码 -> 显示登录/注册页
                 AuthView()
                     .environmentObject(authManager)
                     .transition(.opacity)
@@ -35,6 +35,7 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: splashFinished)
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
+        .animation(.easeInOut(duration: 0.3), value: authManager.needsPasswordSetup)
     }
 }
 

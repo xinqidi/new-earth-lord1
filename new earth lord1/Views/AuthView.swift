@@ -231,11 +231,15 @@ struct AuthView: View {
                 TextField("请输入邮箱", text: $loginEmail)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .textInputAutocapitalization(.never)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             // 密码输入
             VStack(alignment: .leading, spacing: 8) {
@@ -244,11 +248,14 @@ struct AuthView: View {
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
                 SecureField("请输入密码", text: $loginPassword)
+                    .textContentType(.password)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             // 忘记密码链接
             HStack {
@@ -320,11 +327,15 @@ struct AuthView: View {
                 TextField("请输入邮箱", text: $registerEmail)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .textInputAutocapitalization(.never)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             Button(action: handleSendRegisterOTP) {
                 Text("发送验证码")
@@ -353,13 +364,16 @@ struct AuthView: View {
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
-                TextField("请输入6位验证码", text: $registerOTP)
+                TextField("请输入验证码", text: $registerOTP)
                     .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             // 验证按钮
             Button(action: handleVerifyRegisterOTP) {
@@ -371,8 +385,8 @@ struct AuthView: View {
                     .background(ApocalypseTheme.primary)
                     .cornerRadius(10)
             }
-            .disabled(registerOTP.count != 6)
-            .opacity(registerOTP.count != 6 ? 0.5 : 1.0)
+            .disabled(registerOTP.isEmpty)
+            .opacity(registerOTP.isEmpty ? 0.5 : 1.0)
 
             // 重发倒计时
             if otpCountdown > 0 {
@@ -403,11 +417,14 @@ struct AuthView: View {
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
                 SecureField("请输入密码（至少6位）", text: $registerPassword)
+                    .textContentType(.newPassword)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("确认密码")
@@ -415,11 +432,14 @@ struct AuthView: View {
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
                 SecureField("请再次输入密码", text: $registerPasswordConfirm)
+                    .textContentType(.newPassword)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             // 密码不匹配提示
             if !registerPasswordConfirm.isEmpty && registerPassword != registerPasswordConfirm {
@@ -462,6 +482,7 @@ struct AuthView: View {
 
                     Button(action: {
                         showingResetPassword = false
+                        resetResetForm()
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
@@ -470,6 +491,15 @@ struct AuthView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 20)
+
+                // 错误提示
+                if let errorMessage = authManager.errorMessage {
+                    Text(errorMessage)
+                        .font(.subheadline)
+                        .foregroundColor(ApocalypseTheme.danger)
+                        .padding(.horizontal)
+                        .multilineTextAlignment(.center)
+                }
 
                 // 步骤指示器
                 HStack(spacing: 10) {
@@ -495,6 +525,16 @@ struct AuthView: View {
 
                 Spacer()
             }
+
+            // 加载指示器
+            if authManager.isLoading {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .progressViewStyle(CircularProgressViewStyle(tint: ApocalypseTheme.primary))
+            }
         }
     }
 
@@ -509,11 +549,15 @@ struct AuthView: View {
                 TextField("请输入注册邮箱", text: $resetEmail)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .textInputAutocapitalization(.never)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             Button(action: handleSendResetOTP) {
                 Text("发送验证码")
@@ -542,13 +586,16 @@ struct AuthView: View {
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
-                TextField("请输入6位验证码", text: $resetOTP)
+                TextField("请输入验证码", text: $resetOTP)
                     .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             Button(action: handleVerifyResetOTP) {
                 Text("验证")
@@ -559,8 +606,8 @@ struct AuthView: View {
                     .background(ApocalypseTheme.primary)
                     .cornerRadius(10)
             }
-            .disabled(resetOTP.count != 6)
-            .opacity(resetOTP.count != 6 ? 0.5 : 1.0)
+            .disabled(resetOTP.isEmpty)
+            .opacity(resetOTP.isEmpty ? 0.5 : 1.0)
 
             if otpCountdown > 0 {
                 Text("重新发送（\(otpCountdown)s）")
@@ -590,11 +637,14 @@ struct AuthView: View {
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
                 SecureField("请输入新密码（至少6位）", text: $resetPassword)
+                    .textContentType(.newPassword)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("确认密码")
@@ -602,11 +652,14 @@ struct AuthView: View {
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
                 SecureField("请再次输入密码", text: $resetPasswordConfirm)
+                    .textContentType(.newPassword)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
                     .cornerRadius(10)
                     .foregroundColor(ApocalypseTheme.textPrimary)
+                    .frame(height: 50)
             }
+            .contentShape(Rectangle())
 
             if !resetPasswordConfirm.isEmpty && resetPassword != resetPasswordConfirm {
                 Text("两次输入的密码不一致")
@@ -743,9 +796,13 @@ struct AuthView: View {
     private func handleResetPassword() {
         Task {
             await authManager.resetPassword(newPassword: resetPassword)
-            if authManager.isAuthenticated {
+
+            // 检查是否成功（无错误且已完成认证）
+            if authManager.errorMessage == nil && authManager.isAuthenticated && !authManager.needsPasswordSetup {
                 showingResetPassword = false
                 showToastMessage("密码重置成功！")
+                // 重置表单
+                resetResetForm()
             }
         }
     }

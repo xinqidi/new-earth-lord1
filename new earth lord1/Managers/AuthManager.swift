@@ -15,6 +15,18 @@ import Combine
 struct User: Identifiable {
     let id: UUID
     let email: String?
+    let username: String?
+
+    /// 显示名称（优先使用用户名，否则使用邮箱前缀）
+    var displayName: String {
+        if let username = username, !username.isEmpty {
+            return username
+        }
+        if let email = email {
+            return email.components(separatedBy: "@").first ?? "用户"
+        }
+        return "用户"
+    }
 }
 
 // MARK: - 认证管理器
@@ -85,20 +97,22 @@ class AuthManager: ObservableObject {
     /// 开始监听 Supabase 认证状态变化
     private func startAuthStateListener() {
         authStateTask = Task { @MainActor in
-            for await state in supabase.auth.authStateChanges {
-                handleAuthStateChange(state)
+            for await (event, session) in supabase.auth.authStateChanges {
+                handleAuthStateChange(event, session: session)
             }
         }
     }
 
     /// 处理认证状态变化
-    /// - Parameter state: 认证状态事件
-    private func handleAuthStateChange(_ state: AuthChangeEvent) {
-        switch state {
+    /// - Parameters:
+    ///   - event: 认证状态事件
+    ///   - session: 会话信息（可选）
+    private func handleAuthStateChange(_ event: AuthChangeEvent, session: Session?) {
+        switch event {
         case .signedIn:
             // 用户登录
-            Task {
-                await updateUserFromSession()
+            if let session = session {
+                updateUserFromSession(session)
             }
 
         case .signedOut:
@@ -106,33 +120,49 @@ class AuthManager: ObservableObject {
             isAuthenticated = false
             currentUser = nil
             needsPasswordSetup = false
+            errorMessage = nil
 
         case .userUpdated:
             // 用户信息更新
-            Task {
-                await updateUserFromSession()
+            if let session = session {
+                updateUserFromSession(session)
+            }
+
+        case .initialSession:
+            // 初始会话（应用启动时）
+            if let session = session {
+                updateUserFromSession(session)
+            }
+
+        case .tokenRefreshed:
+            // Token 刷新成功
+            if let session = session {
+                updateUserFromSession(session)
             }
 
         default:
-            break
+            // 处理其他事件（如会话过期、错误等）
+            // 会话过期或发生错误时，清除认证状态
+            if session == nil && event != .signedOut {
+                isAuthenticated = false
+                currentUser = nil
+                needsPasswordSetup = false
+                errorMessage = "会话已过期，请重新登录"
+            }
         }
     }
 
-    /// 从当前会话更新用户信息
-    private func updateUserFromSession() async {
-        do {
-            let session = try await supabase.auth.session
-            let user = session.user
-            currentUser = User(id: user.id, email: user.email)
+    /// 从会话更新用户信息
+    /// - Parameter session: Supabase 会话
+    private func updateUserFromSession(_ session: Session) {
+        let user = session.user
+        // 尝试从 user_metadata 获取用户名
+        let username = user.userMetadata["username"]?.value as? String
+        currentUser = User(id: user.id, email: user.email, username: username)
 
-            // 如果有会话且不在注册流程中，标记为已认证
-            if !needsPasswordSetup {
-                isAuthenticated = true
-            }
-        } catch {
-            // 会话获取失败
-            isAuthenticated = false
-            currentUser = nil
+        // 如果有会话且不在注册流程中，标记为已认证
+        if !needsPasswordSetup {
+            isAuthenticated = true
         }
     }
 
@@ -146,6 +176,22 @@ class AuthManager: ObservableObject {
         otpSent = false
 
         do {
+            // 先检查用户是否已存在（尝试用不创建用户的方式发送OTP）
+            // 如果用户已存在，这个调用会成功，说明邮箱已注册
+            do {
+                try await supabase.auth.signInWithOTP(
+                    email: email,
+                    shouldCreateUser: false
+                )
+                // 如果成功了，说明用户已存在
+                errorMessage = "该邮箱已注册，请使用登录功能"
+                otpSent = false
+                isLoading = false
+                return
+            } catch {
+                // 用户不存在，继续注册流程
+            }
+
             // 调用 Supabase 发送 OTP，shouldCreateUser 为 true 表示允许创建新用户
             try await supabase.auth.signInWithOTP(
                 email: email,
@@ -177,6 +223,9 @@ class AuthManager: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        // ⚠️ 在调用 Supabase API 之前设置，避免时序问题
+        needsPasswordSetup = true
+
         do {
             // 验证 OTP，type 为 .email
             let session = try await supabase.auth.verifyOTP(
@@ -187,12 +236,12 @@ class AuthManager: ObservableObject {
 
             // 验证成功，用户已登录但需要设置密码
             otpVerified = true
-            needsPasswordSetup = true
             pendingEmail = email
 
             // 设置当前用户信息
             let user = session.user
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
             // ⚠️ 注意：此时 isAuthenticated 保持 false
             // 必须完成密码设置后才能进入主页
@@ -200,6 +249,7 @@ class AuthManager: ObservableObject {
         } catch {
             errorMessage = "验证码错误: \(error.localizedDescription)"
             otpVerified = false
+            needsPasswordSetup = false  // 验证失败，重置状态
         }
 
         isLoading = false
@@ -224,7 +274,8 @@ class AuthManager: ObservableObject {
             isAuthenticated = true
 
             // 更新用户信息
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
             // 重置临时状态
             otpSent = false
@@ -261,7 +312,8 @@ class AuthManager: ObservableObject {
 
             // 设置当前用户信息
             let user = session.user
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
         } catch {
             errorMessage = "登录失败: \(error.localizedDescription)"
@@ -307,6 +359,9 @@ class AuthManager: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        // ⚠️ 在调用 Supabase API 之前设置，避免时序问题
+        needsPasswordSetup = true
+
         do {
             // 验证 OTP，type 为 .recovery（密码恢复）
             let session = try await supabase.auth.verifyOTP(
@@ -317,16 +372,17 @@ class AuthManager: ObservableObject {
 
             // 验证成功，用户已登录但需要设置新密码
             otpVerified = true
-            needsPasswordSetup = true
             pendingEmail = email
 
             // 设置当前用户信息
             let user = session.user
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
         } catch {
             errorMessage = "验证码错误: \(error.localizedDescription)"
             otpVerified = false
+            needsPasswordSetup = false  // 验证失败，重置状态
         }
 
         isLoading = false
@@ -349,7 +405,8 @@ class AuthManager: ObservableObject {
             isAuthenticated = true
 
             // 更新用户信息
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
             // 重置临时状态
             otpSent = false
@@ -422,7 +479,8 @@ class AuthManager: ObservableObject {
 
             // 会话存在，用户已登录
             let user = session.user
-            currentUser = User(id: user.id, email: user.email)
+            let username = user.userMetadata["username"]?.value as? String
+            currentUser = User(id: user.id, email: user.email, username: username)
 
             // 检查用户是否已设置密码
             // 注意：Supabase v2.0 中，通过 OTP 登录后用户已经存在
