@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Supabase
+import Combine
 
 // MARK: - 用户模型
 
@@ -58,10 +59,81 @@ class AuthManager: ObservableObject {
     /// 临时存储的用户邮箱（用于完成注册/重置密码流程）
     private var pendingEmail: String?
 
+    /// 认证状态监听任务
+    private var authStateTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
-    init(supabaseClient: SupabaseClient = supabase) {
-        self.supabase = supabaseClient
+    init() {
+        // 初始化 Supabase 客户端
+        self.supabase = SupabaseClient(
+            supabaseURL: URL(string: "https://ipvkhcrgbbcccwiwlofd.supabase.co")!,
+            supabaseKey: "sb_publishable_DCfb2P7IEr46I6jX-Wu_3g_Es4DTHEJ"
+        )
+
+        // 开始监听认证状态变化
+        startAuthStateListener()
+    }
+
+    deinit {
+        // 清理监听任务
+        authStateTask?.cancel()
+    }
+
+    // MARK: - 认证状态监听
+
+    /// 开始监听 Supabase 认证状态变化
+    private func startAuthStateListener() {
+        authStateTask = Task { @MainActor in
+            for await state in supabase.auth.authStateChanges {
+                handleAuthStateChange(state)
+            }
+        }
+    }
+
+    /// 处理认证状态变化
+    /// - Parameter state: 认证状态事件
+    private func handleAuthStateChange(_ state: AuthChangeEvent) {
+        switch state {
+        case .signedIn:
+            // 用户登录
+            Task {
+                await updateUserFromSession()
+            }
+
+        case .signedOut:
+            // 用户登出
+            isAuthenticated = false
+            currentUser = nil
+            needsPasswordSetup = false
+
+        case .userUpdated:
+            // 用户信息更新
+            Task {
+                await updateUserFromSession()
+            }
+
+        default:
+            break
+        }
+    }
+
+    /// 从当前会话更新用户信息
+    private func updateUserFromSession() async {
+        do {
+            let session = try await supabase.auth.session
+            let user = session.user
+            currentUser = User(id: user.id, email: user.email)
+
+            // 如果有会话且不在注册流程中，标记为已认证
+            if !needsPasswordSetup {
+                isAuthenticated = true
+            }
+        } catch {
+            // 会话获取失败
+            isAuthenticated = false
+            currentUser = nil
+        }
     }
 
     // MARK: - 注册流程
@@ -119,9 +191,8 @@ class AuthManager: ObservableObject {
             pendingEmail = email
 
             // 设置当前用户信息
-            if let user = session.user {
-                currentUser = User(id: user.id, email: user.email)
-            }
+            let user = session.user
+            currentUser = User(id: user.id, email: user.email)
 
             // ⚠️ 注意：此时 isAuthenticated 保持 false
             // 必须完成密码设置后才能进入主页
@@ -189,9 +260,8 @@ class AuthManager: ObservableObject {
             needsPasswordSetup = false
 
             // 设置当前用户信息
-            if let user = session.user {
-                currentUser = User(id: user.id, email: user.email)
-            }
+            let user = session.user
+            currentUser = User(id: user.id, email: user.email)
 
         } catch {
             errorMessage = "登录失败: \(error.localizedDescription)"
@@ -251,9 +321,8 @@ class AuthManager: ObservableObject {
             pendingEmail = email
 
             // 设置当前用户信息
-            if let user = session.user {
-                currentUser = User(id: user.id, email: user.email)
-            }
+            let user = session.user
+            currentUser = User(id: user.id, email: user.email)
 
         } catch {
             errorMessage = "验证码错误: \(error.localizedDescription)"
@@ -352,20 +421,15 @@ class AuthManager: ObservableObject {
             let session = try await supabase.auth.session
 
             // 会话存在，用户已登录
-            if let user = session.user {
-                currentUser = User(id: user.id, email: user.email)
+            let user = session.user
+            currentUser = User(id: user.id, email: user.email)
 
-                // 检查用户是否已设置密码
-                // 注意：Supabase v2.0 中，通过 OTP 登录后用户已经存在
-                // 我们假设有密码的用户已完成完整注册流程
-                // 这里简化处理：如果有会话就认为已完成认证
-                isAuthenticated = true
-                needsPasswordSetup = false
-            } else {
-                // 无会话，用户未登录
-                isAuthenticated = false
-                currentUser = nil
-            }
+            // 检查用户是否已设置密码
+            // 注意：Supabase v2.0 中，通过 OTP 登录后用户已经存在
+            // 我们假设有密码的用户已完成完整注册流程
+            // 这里简化处理：如果有会话就认为已完成认证
+            isAuthenticated = true
+            needsPasswordSetup = false
 
         } catch {
             // 会话检查失败或不存在

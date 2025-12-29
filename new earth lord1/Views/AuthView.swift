@@ -13,10 +13,10 @@ import SwiftUI
 /// 包含登录、注册、找回密码功能
 struct AuthView: View {
 
-    // MARK: - State Objects
+    // MARK: - Environment Objects
 
-    /// 认证管理器
-    @StateObject private var authManager = AuthManager()
+    /// 认证管理器（从 RootView 注入）
+    @EnvironmentObject private var authManager: AuthManager
 
     // MARK: - State Variables
 
@@ -825,4 +825,5 @@ struct AuthView: View {
 
 #Preview {
     AuthView()
+        .environmentObject(AuthManager())
 }
