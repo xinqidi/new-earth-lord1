@@ -9,6 +9,52 @@ import SwiftUI
 import Supabase
 import Combine
 
+// MARK: - 辅助类型
+
+/// 用于解码任意 JSON 值的类型
+struct AnyCodable: Codable {
+    let value: Any
+
+    init(_ value: Any) {
+        self.value = value
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let intValue = try? container.decode(Int.self) {
+            value = intValue
+        } else if let doubleValue = try? container.decode(Double.self) {
+            value = doubleValue
+        } else if let boolValue = try? container.decode(Bool.self) {
+            value = boolValue
+        } else if let stringValue = try? container.decode(String.self) {
+            value = stringValue
+        } else if let arrayValue = try? container.decode([AnyCodable].self) {
+            value = arrayValue.map { $0.value }
+        } else if let dictValue = try? container.decode([String: AnyCodable].self) {
+            value = dictValue.mapValues { $0.value }
+        } else {
+            value = NSNull()
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch value {
+        case let intValue as Int:
+            try container.encode(intValue)
+        case let doubleValue as Double:
+            try container.encode(doubleValue)
+        case let boolValue as Bool:
+            try container.encode(boolValue)
+        case let stringValue as String:
+            try container.encode(stringValue)
+        default:
+            break
+        }
+    }
+}
+
 // MARK: - 用户模型
 
 /// 应用内用户信息模型
@@ -466,6 +512,114 @@ class AuthManager: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    /// 删除账户
+    /// 调用边缘函数永久删除用户账户
+    func deleteAccount() async throws {
+        print("🗑️ [删除账户] 开始删除账户流程")
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 1. 获取当前会话
+            print("🔑 [删除账户] 获取当前用户会话...")
+            guard let session = try? await supabase.auth.session else {
+                print("❌ [删除账户] 未找到有效会话")
+                throw NSError(
+                    domain: "DeleteAccount",
+                    code: 401,
+                    userInfo: [NSLocalizedDescriptionKey: "未登录，无法删除账户"]
+                )
+            }
+            print("✅ [删除账户] 会话获取成功，用户ID: \(session.user.id)")
+
+            // 2. 构建请求
+            let functionURL = "https://ipvkhcrgbbcccwiwlofd.supabase.co/functions/v1/delete-account"
+            print("🌐 [删除账户] 调用边缘函数: \(functionURL)")
+
+            guard let url = URL(string: functionURL) else {
+                print("❌ [删除账户] URL 构建失败")
+                throw NSError(
+                    domain: "DeleteAccount",
+                    code: 500,
+                    userInfo: [NSLocalizedDescriptionKey: "内部错误：无效的 URL"]
+                )
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            print("📤 [删除账户] 请求已构建，携带 JWT token")
+
+            // 3. 发送请求
+            print("⏳ [删除账户] 发送删除请求...")
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // 4. 处理响应
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ [删除账户] 无效的响应类型")
+                throw NSError(
+                    domain: "DeleteAccount",
+                    code: 500,
+                    userInfo: [NSLocalizedDescriptionKey: "服务器响应异常"]
+                )
+            }
+
+            print("📥 [删除账户] 收到响应，状态码: \(httpResponse.statusCode)")
+
+            if httpResponse.statusCode == 200 {
+                // 成功删除
+                print("✅ [删除账户] 账户删除成功")
+
+                // 解析响应（可选）
+                if let json = try? JSONDecoder().decode([String: AnyCodable].self, from: data) {
+                    print("📋 [删除账户] 响应数据: \(json)")
+                }
+
+                // 5. 清除本地状态
+                print("🧹 [删除账户] 清除本地用户状态")
+                isAuthenticated = false
+                needsPasswordSetup = false
+                currentUser = nil
+                otpSent = false
+                otpVerified = false
+                pendingEmail = nil
+                errorMessage = nil
+
+            } else {
+                // 删除失败
+                print("❌ [删除账户] 删除失败，状态码: \(httpResponse.statusCode)")
+
+                // 尝试解析错误信息
+                if let errorJson = try? JSONDecoder().decode([String: String].self, from: data),
+                   let errorMsg = errorJson["error"] {
+                    print("📋 [删除账户] 错误信息: \(errorMsg)")
+                    throw NSError(
+                        domain: "DeleteAccount",
+                        code: httpResponse.statusCode,
+                        userInfo: [NSLocalizedDescriptionKey: errorMsg]
+                    )
+                } else {
+                    print("📋 [删除账户] 未知错误")
+                    throw NSError(
+                        domain: "DeleteAccount",
+                        code: httpResponse.statusCode,
+                        userInfo: [NSLocalizedDescriptionKey: "删除账户失败（状态码: \(httpResponse.statusCode)）"]
+                    )
+                }
+            }
+
+        } catch {
+            print("❌ [删除账户] 发生异常: \(error.localizedDescription)")
+            errorMessage = "删除账户失败: \(error.localizedDescription)"
+            isLoading = false
+            throw error
+        }
+
+        isLoading = false
+        print("🏁 [删除账户] 删除账户流程结束")
     }
 
     /// 检查会话状态
