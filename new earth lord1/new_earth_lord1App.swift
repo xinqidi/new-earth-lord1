@@ -6,12 +6,18 @@
 //
 
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct new_earth_lord1App: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .onOpenURL { url in
+                    print("🔗 [App] 收到 URL 回调: \(url)")
+                    // 处理 Google Sign In 的 URL 回调
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

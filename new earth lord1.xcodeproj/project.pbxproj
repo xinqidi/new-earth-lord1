@@ -8,15 +8,30 @@
 
 /* Begin PBXBuildFile section */
 		A316D5912EFEBA78005C3683 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A316D5902EFEBA78005C3683 /* Supabase */; };
+		A35030002F041D2800C4DD03 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A3502FFF2F041D2800C4DD03 /* GoogleSignIn */; };
+		A35030022F041D2800C4DD03 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A35030012F041D2800C4DD03 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A39941402EFAC19E00C13F98 /* new earth lord1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "new earth lord1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A35030042F04255000C4DD03 /* Exceptions for "new earth lord1" folder in "new earth lord1" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"new-earth-lord1-Info.plist",
+			);
+			target = A399413F2EFAC19E00C13F98 /* new earth lord1 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A39941422EFAC19E00C13F98 /* new earth lord1 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A35030042F04255000C4DD03 /* Exceptions for "new earth lord1" folder in "new earth lord1" target */,
+			);
 			path = "new earth lord1";
 			sourceTree = "<group>";
 		};
@@ -27,7 +42,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A35030022F041D2800C4DD03 /* GoogleSignInSwift in Frameworks */,
 				A316D5912EFEBA78005C3683 /* Supabase in Frameworks */,
+				A35030002F041D2800C4DD03 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +88,8 @@
 			name = "new earth lord1";
 			packageProductDependencies = (
 				A316D5902EFEBA78005C3683 /* Supabase */,
+				A3502FFF2F041D2800C4DD03 /* GoogleSignIn */,
+				A35030012F041D2800C4DD03 /* GoogleSignInSwift */,
 			);
 			productName = "new earth lord1";
 			productReference = A39941402EFAC19E00C13F98 /* new earth lord1.app */;
@@ -102,6 +121,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A316D58F2EFEBA78005C3683 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				A3502FFE2F041D2800C4DD03 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A39941412EFAC19E00C13F98 /* Products */;
@@ -265,6 +285,7 @@
 				DEVELOPMENT_TEAM = 8C9N2FUW56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "new-earth-lord1-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -298,6 +319,7 @@
 				DEVELOPMENT_TEAM = 8C9N2FUW56;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "new-earth-lord1-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -353,6 +375,14 @@
 				minimumVersion = 2.5.1;
 			};
 		};
+		A3502FFE2F041D2800C4DD03 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -360,6 +390,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A316D58F2EFEBA78005C3683 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		A3502FFF2F041D2800C4DD03 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3502FFE2F041D2800C4DD03 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		A35030012F041D2800C4DD03 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A3502FFE2F041D2800C4DD03 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

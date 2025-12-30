@@ -8,6 +8,7 @@
 import SwiftUI
 import Supabase
 import Combine
+import GoogleSignIn
 
 // MARK: - 辅助类型
 
@@ -479,13 +480,99 @@ class AuthManager: ObservableObject {
     }
 
     /// Google 登录
-    /// TODO: 实现 Google 第三方登录
+    /// 使用 Google Sign In SDK 和 Supabase 集成
     func signInWithGoogle() async {
-        // TODO: 实现 Google Sign In 集成
-        // 1. 配置 Google Cloud Console
-        // 2. 在 Supabase Dashboard 配置 Google Provider
-        // 3. 使用 GoogleSignIn SDK
-        errorMessage = "Google 登录功能开发中..."
+        print("🔵 [Google登录] 开始 Google 登录流程")
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 1. 获取根视图控制器
+            print("📱 [Google登录] 获取根视图控制器...")
+            guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootViewController = await windowScene.windows.first?.rootViewController else {
+                print("❌ [Google登录] 无法获取根视图控制器")
+                errorMessage = "无法初始化 Google 登录"
+                isLoading = false
+                return
+            }
+            print("✅ [Google登录] 根视图控制器获取成功")
+
+            // 2. 配置 Google Sign In
+            let clientID = "711485749722-71b8aajrgv0fj0l44vevpvd4ds1ah71a.apps.googleusercontent.com"
+            print("🔧 [Google登录] 配置 Google Sign In，Client ID: \(clientID)")
+            let config = GIDConfiguration(clientID: clientID)
+            GIDSignIn.sharedInstance.configuration = config
+
+            // 3. 执行 Google 登录
+            print("🚀 [Google登录] 启动 Google 登录界面...")
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+            print("✅ [Google登录] Google 登录成功")
+
+            // 4. 获取 ID Token
+            guard let idToken = result.user.idToken?.tokenString else {
+                print("❌ [Google登录] 无法获取 ID Token")
+                errorMessage = "Google 登录失败：无法获取身份令牌"
+                isLoading = false
+                return
+            }
+            print("🔑 [Google登录] ID Token 获取成功: \(idToken.prefix(20))...")
+
+            // 5. 获取 Access Token
+            let accessToken = result.user.accessToken.tokenString
+            print("🔑 [Google登录] Access Token 获取成功: \(accessToken.prefix(20))...")
+
+            // 6. 使用 Supabase 登录
+            print("🔐 [Google登录] 使用 Google 凭证登录 Supabase...")
+            let session = try await supabase.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .google,
+                    idToken: idToken,
+                    accessToken: accessToken,
+                    nonce: nil
+                )
+            )
+            print("✅ [Google登录] Supabase 登录成功")
+
+            // 7. 更新用户状态
+            let user = session.user
+            let username = user.userMetadata["username"]?.value as? String
+            let fullName = user.userMetadata["full_name"]?.value as? String
+
+            print("👤 [Google登录] 用户信息:")
+            print("   - ID: \(user.id)")
+            print("   - Email: \(user.email ?? "无")")
+            print("   - Username: \(username ?? "无")")
+            print("   - Full Name: \(fullName ?? "无")")
+
+            currentUser = User(
+                id: user.id,
+                email: user.email,
+                username: username ?? fullName
+            )
+
+            // 8. 设置认证状态
+            isAuthenticated = true
+            needsPasswordSetup = false
+            print("✅ [Google登录] 用户状态已更新，登录完成")
+
+        } catch let error as GIDSignInError {
+            print("❌ [Google登录] Google Sign In 错误: \(error.localizedDescription)")
+
+            // 处理用户取消登录的情况
+            if error.code == .canceled {
+                print("ℹ️ [Google登录] 用户取消了登录")
+                errorMessage = nil  // 用户取消不显示错误
+            } else {
+                errorMessage = "Google 登录失败: \(error.localizedDescription)"
+            }
+        } catch {
+            print("❌ [Google登录] 发生异常: \(error.localizedDescription)")
+            errorMessage = "Google 登录失败: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+        print("🏁 [Google登录] Google 登录流程结束")
     }
 
     // MARK: - 其他方法
@@ -578,8 +665,18 @@ class AuthManager: ObservableObject {
                     print("📋 [删除账户] 响应数据: \(json)")
                 }
 
-                // 5. 清除本地状态
-                print("🧹 [删除账户] 清除本地用户状态")
+                // 5. 清除 Supabase 本地会话缓存
+                print("🗑️ [删除账户] 清除 Supabase 本地会话缓存...")
+                do {
+                    try await supabase.auth.signOut()
+                    print("✅ [删除账户] Supabase 会话缓存已清除")
+                } catch {
+                    print("⚠️ [删除账户] 清除会话缓存时出错: \(error.localizedDescription)")
+                    // 即使清除缓存失败，也继续清除本地状态
+                }
+
+                // 6. 清除应用内本地状态
+                print("🧹 [删除账户] 清除应用内用户状态")
                 isAuthenticated = false
                 needsPasswordSetup = false
                 currentUser = nil
@@ -625,16 +722,29 @@ class AuthManager: ObservableObject {
     /// 检查会话状态
     /// 在应用启动时调用，检查用户是否已登录
     func checkSession() async {
+        print("🔍 [会话检查] 开始检查用户会话状态")
         isLoading = true
 
         do {
             // 获取当前会话
+            print("📱 [会话检查] 尝试从本地获取会话...")
             let session = try await supabase.auth.session
 
-            // 会话存在，用户已登录
+            // 会话存在，验证用户信息
             let user = session.user
+            print("✅ [会话检查] 找到本地会话")
+            print("👤 [会话检查] 用户ID: \(user.id)")
+            print("📧 [会话检查] 用户邮箱: \(user.email ?? "无")")
+
+            // 提取用户名
             let username = user.userMetadata["username"]?.value as? String
-            currentUser = User(id: user.id, email: user.email, username: username)
+            let fullName = user.userMetadata["full_name"]?.value as? String
+
+            currentUser = User(
+                id: user.id,
+                email: user.email,
+                username: username ?? fullName
+            )
 
             // 检查用户是否已设置密码
             // 注意：Supabase v2.0 中，通过 OTP 登录后用户已经存在
@@ -643,12 +753,20 @@ class AuthManager: ObservableObject {
             isAuthenticated = true
             needsPasswordSetup = false
 
+            print("✅ [会话检查] 用户会话有效，自动登录成功")
+
         } catch {
             // 会话检查失败或不存在
+            print("ℹ️ [会话检查] 未找到有效会话或会话已过期")
+            print("📋 [会话检查] 错误详情: \(error.localizedDescription)")
+
             isAuthenticated = false
             currentUser = nil
+
+            print("🔓 [会话检查] 用户未登录，显示登录页面")
         }
 
         isLoading = false
+        print("🏁 [会话检查] 会话检查完成")
     }
 }
