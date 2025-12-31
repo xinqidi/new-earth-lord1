@@ -161,11 +161,11 @@ struct AuthView: View {
             }
 
             // 游戏标题
-            Text("地球新主")
+            Text("地球新主".localized)
                 .font(.system(size: 36, weight: .bold))
                 .foregroundColor(ApocalypseTheme.textPrimary)
 
-            Text("Earth Lord")
+            Text("Earth Lord".localized)
                 .font(.subheadline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
         }
@@ -183,7 +183,7 @@ struct AuthView: View {
                     resetRegisterForm()
                 }
             }) {
-                Text("登录")
+                Text("登录".localized)
                     .font(.headline)
                     .foregroundColor(isRegistering ? ApocalypseTheme.textSecondary : ApocalypseTheme.textPrimary)
                     .frame(maxWidth: .infinity)
@@ -200,7 +200,7 @@ struct AuthView: View {
                     resetLoginForm()
                 }
             }) {
-                Text("注册")
+                Text("注册".localized)
                     .font(.headline)
                     .foregroundColor(isRegistering ? ApocalypseTheme.textPrimary : ApocalypseTheme.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -224,11 +224,11 @@ struct AuthView: View {
         VStack(spacing: 20) {
             // 邮箱输入
             VStack(alignment: .leading, spacing: 8) {
-                Text("邮箱")
+                Text("邮箱".localized)
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
-                TextField("请输入邮箱", text: $loginEmail)
+                TextField("请输入邮箱".localized, text: $loginEmail)
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
@@ -243,11 +243,11 @@ struct AuthView: View {
 
             // 密码输入
             VStack(alignment: .leading, spacing: 8) {
-                Text("密码")
+                Text("密码".localized)
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
-                SecureField("请输入密码", text: $loginPassword)
+                SecureField("请输入密码".localized, text: $loginPassword)
                     .textContentType(.password)
                     .padding()
                     .background(ApocalypseTheme.cardBackground)
@@ -264,7 +264,7 @@ struct AuthView: View {
                     showingResetPassword = true
                     resetResetForm()
                 }) {
-                    Text("忘记密码？")
+                    Text("忘记密码？".localized)
                         .font(.subheadline)
                         .foregroundColor(ApocalypseTheme.primary)
                 }
@@ -272,7 +272,7 @@ struct AuthView: View {
 
             // 登录按钮
             Button(action: handleLogin) {
-                Text("登录")
+                Text("登录".localized)
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -689,7 +689,7 @@ struct AuthView: View {
                 .fill(ApocalypseTheme.textMuted.opacity(0.3))
                 .frame(height: 1)
 
-            Text("或者使用以下方式登录")
+            Text("或者使用以下方式登录".localized)
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -708,7 +708,7 @@ struct AuthView: View {
                 HStack {
                     Image(systemName: "apple.logo")
                         .font(.title3)
-                    Text("使用 Apple 登录")
+                    Text("使用 Apple 登录".localized)
                         .font(.headline)
                 }
                 .foregroundColor(.white)
@@ -723,7 +723,7 @@ struct AuthView: View {
                 HStack {
                     Image(systemName: "g.circle.fill")
                         .font(.title3)
-                    Text("使用 Google 登录")
+                    Text("使用 Google 登录".localized)
                         .font(.headline)
                 }
                 .foregroundColor(.black)

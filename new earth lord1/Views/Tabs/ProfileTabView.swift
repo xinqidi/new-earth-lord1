@@ -36,7 +36,7 @@ struct ProfileTabView: View {
         ScrollView {
             VStack(spacing: 0) {
                 // 顶部标题
-                Text("幸存者档案")
+                Text("幸存者档案".localized)
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
                     .padding(.top, 15)
@@ -99,7 +99,7 @@ struct ProfileTabView: View {
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
-                        Text("领地")
+                        Text("领地".localized)
                             .font(.caption2)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                     }
@@ -119,7 +119,7 @@ struct ProfileTabView: View {
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
-                        Text("资源点")
+                        Text("资源点".localized)
                             .font(.caption2)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                     }
@@ -139,7 +139,7 @@ struct ProfileTabView: View {
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
-                        Text("探索距离")
+                        Text("探索距离".localized)
                             .font(.caption2)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                     }
@@ -162,7 +162,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(Color.gray)
                                 .frame(width: 24)
-                            Text("设置")
+                            Text("设置".localized)
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
@@ -188,7 +188,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.primary)
                                 .frame(width: 24)
-                            Text("通知")
+                            Text("通知".localized)
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
@@ -214,7 +214,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(.orange)
                                 .frame(width: 24)
-                            Text("语言")
+                            Text("语言".localized)
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
@@ -243,7 +243,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(.blue)
                                 .frame(width: 24)
-                            Text("帮助")
+                            Text("帮助".localized)
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
@@ -269,7 +269,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(.green)
                                 .frame(width: 24)
-                            Text("关于")
+                            Text("关于".localized)
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
@@ -294,7 +294,7 @@ struct ProfileTabView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "trash.fill")
                             .font(.body)
-                        Text("删除账户")
+                        Text("删除账户".localized)
                             .font(.body)
                             .fontWeight(.semibold)
                     }
@@ -321,7 +321,7 @@ struct ProfileTabView: View {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .font(.body)
                         }
-                        Text(authManager.isLoading ? "退出中..." : "退出登录")
+                        Text(authManager.isLoading ? "退出中...".localized : "退出登录".localized)
                             .font(.body)
                             .fontWeight(.semibold)
                     }
@@ -340,15 +340,15 @@ struct ProfileTabView: View {
             .padding(.bottom, 120)
         }
         .background(ApocalypseTheme.background.ignoresSafeArea())
-        .alert("退出登录", isPresented: $showingSignOutConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("退出", role: .destructive) {
+        .alert("退出登录".localized, isPresented: $showingSignOutConfirm) {
+            Button("取消".localized, role: .cancel) {}
+            Button("退出".localized, role: .destructive) {
                 Task {
                     await authManager.signOut()
                 }
             }
         } message: {
-            Text("确定要退出登录吗？")
+            Text("确定要退出登录吗？".localized)
         }
         .sheet(isPresented: $showingDeleteAccountConfirm) {
             deleteAccountConfirmSheet
@@ -387,11 +387,11 @@ struct ProfileTabView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("选择语言")
+            .navigationTitle("选择语言".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button("完成".localized) {
                         showingLanguagePicker = false
                     }
                     .foregroundColor(ApocalypseTheme.primary)
@@ -410,7 +410,7 @@ struct ProfileTabView: View {
             VStack(spacing: 25) {
                 // 标题
                 HStack {
-                    Text("删除账户")
+                    Text("删除账户".localized)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(ApocalypseTheme.danger)
@@ -438,19 +438,19 @@ struct ProfileTabView: View {
 
                 // 警告信息
                 VStack(spacing: 15) {
-                    Text("此操作无法撤销！")
+                    Text("此操作无法撤销！".localized)
                         .font(.headline)
                         .foregroundColor(ApocalypseTheme.danger)
 
-                    Text("删除账户将永久删除您的所有数据，包括：")
+                    Text("删除账户将永久删除您的所有数据，包括：".localized)
                         .font(.subheadline)
                         .foregroundColor(ApocalypseTheme.textSecondary)
                         .multilineTextAlignment(.center)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("个人资料和账户信息", systemImage: "person.fill")
-                        Label("游戏进度和成就", systemImage: "gamecontroller.fill")
-                        Label("所有领地和资源", systemImage: "flag.fill")
+                        Label("个人资料和账户信息".localized, systemImage: "person.fill")
+                        Label("游戏进度和成就".localized, systemImage: "gamecontroller.fill")
+                        Label("所有领地和资源".localized, systemImage: "flag.fill")
                     }
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
@@ -459,11 +459,11 @@ struct ProfileTabView: View {
 
                 // 确认输入
                 VStack(spacing: 12) {
-                    Text("请输入 \"删除\" 以确认操作")
+                    Text("请输入 \"删除\" 以确认操作".localized)
                         .font(.subheadline)
                         .foregroundColor(ApocalypseTheme.textSecondary)
 
-                    TextField("输入：删除", text: $deleteConfirmText)
+                    TextField("输入：删除".localized, text: $deleteConfirmText)
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
                         .padding()
@@ -505,7 +505,7 @@ struct ProfileTabView: View {
                                 Image(systemName: "trash.fill")
                                     .font(.body)
                             }
-                            Text(authManager.isLoading ? "删除中..." : "确认删除")
+                            Text(authManager.isLoading ? "删除中...".localized : "确认删除".localized)
                                 .font(.body)
                                 .fontWeight(.semibold)
                         }
@@ -523,7 +523,7 @@ struct ProfileTabView: View {
                         deleteConfirmText = ""
                         deleteAccountError = nil
                     }) {
-                        Text("取消")
+                        Text("取消".localized)
                             .font(.body)
                             .fontWeight(.semibold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
