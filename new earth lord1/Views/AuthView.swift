@@ -18,6 +18,9 @@ struct AuthView: View {
     /// 认证管理器（从 RootView 注入）
     @EnvironmentObject private var authManager: AuthManager
 
+    /// 语言管理器
+    @EnvironmentObject private var languageManager: LanguageManager
+
     // MARK: - State Variables
 
     /// 当前选中的 Tab（true=注册, false=登录）
@@ -133,6 +136,8 @@ struct AuthView: View {
                 showToastMessage(error)
             }
         }
+        // 🔑 强制在语言变化时重新渲染
+        .id(languageManager.currentLanguage)
     }
 
     // MARK: - Logo Section

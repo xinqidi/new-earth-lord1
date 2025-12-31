@@ -12,11 +12,14 @@ struct SplashView: View {
     /// 认证管理器（从父视图传入）
     var authManager: AuthManager?
 
+    /// 语言管理器
+    @EnvironmentObject private var languageManager: LanguageManager
+
     /// 是否显示加载动画
     @State private var isAnimating = false
 
     /// 加载进度文字
-    @State private var loadingText = "正在初始化..."
+    @State private var loadingText = ""
 
     /// Logo 缩放动画
     @State private var logoScale: CGFloat = 0.8
@@ -28,7 +31,9 @@ struct SplashView: View {
     @Binding var isFinished: Bool
 
     var body: some View {
-        ZStack {
+        let _ = languageManager.currentLanguage  // 触发重新渲染
+
+        return ZStack {
             // 背景渐变
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -91,11 +96,11 @@ struct SplashView: View {
 
                 // 标题
                 VStack(spacing: 8) {
-                    Text("地球新主")
+                    Text("地球新主".localized)
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(ApocalypseTheme.textPrimary)
 
-                    Text("EARTH LORD")
+                    Text("EARTH LORD".localized)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(ApocalypseTheme.textSecondary)
                         .tracking(4)
@@ -134,6 +139,7 @@ struct SplashView: View {
             startAnimations()
             simulateLoading()
         }
+        .id(languageManager.currentLanguage)  // 语言切换时重新渲染
     }
 
     // MARK: - 动画方法
@@ -154,20 +160,23 @@ struct SplashView: View {
     // MARK: - 模拟加载
 
     private func simulateLoading() {
+        // 初始化文字
+        loadingText = "正在初始化...".localized
+
         // 第一步：检查会话（如果有认证管理器）
         Task {
             if let authManager = authManager {
-                loadingText = "正在检查登录状态..."
+                loadingText = "正在检查登录状态...".localized
                 await authManager.checkSession()
             }
 
             // 第二步：加载资源
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                loadingText = "正在加载资源..."
+                loadingText = "正在加载资源...".localized
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                loadingText = "准备就绪"
+                loadingText = "准备就绪".localized
             }
 
             // 完成加载，进入主界面

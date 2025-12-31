@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MoreTabView: View {
+    @EnvironmentObject private var languageManager: LanguageManager
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -21,12 +23,12 @@ struct MoreTabView: View {
                             .font(.system(size: 50))
                             .foregroundColor(ApocalypseTheme.primary)
 
-                        Text("更多")
+                        Text("更多".localized)
                             .font(.title)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
 
-                        Text("功能与设置")
+                        Text("功能与设置".localized)
                             .font(.subheadline)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                     }
@@ -45,11 +47,11 @@ struct MoreTabView: View {
                                     .frame(width: 40)
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Supabase 连接测试")
+                                    Text("Supabase 连接测试".localized)
                                         .font(.headline)
                                         .foregroundColor(ApocalypseTheme.textPrimary)
 
-                                    Text("测试数据库连接状态")
+                                    Text("测试数据库连接状态".localized)
                                         .font(.caption)
                                         .foregroundColor(ApocalypseTheme.textSecondary)
                                 }
@@ -71,6 +73,8 @@ struct MoreTabView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            // 强制在语言变化时重新渲染
+            .id(languageManager.currentLanguage)
         }
     }
 }

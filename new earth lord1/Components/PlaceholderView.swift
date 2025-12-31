@@ -10,8 +10,10 @@ import SwiftUI
 /// 通用占位视图
 struct PlaceholderView: View {
     let icon: String
-    let title: LocalizedStringKey
-    let subtitle: LocalizedStringKey
+    let title: String
+    let subtitle: String
+
+    @EnvironmentObject private var languageManager: LanguageManager
 
     var body: some View {
         ZStack {
@@ -23,16 +25,18 @@ struct PlaceholderView: View {
                     .font(.system(size: 60))
                     .foregroundColor(ApocalypseTheme.primary)
 
-                Text(title)
+                Text(title.localized)
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
-                Text(subtitle)
+                Text(subtitle.localized)
                     .font(.subheadline)
                     .foregroundColor(ApocalypseTheme.textSecondary)
             }
         }
+        // 强制在语言变化时重新渲染
+        .id(languageManager.currentLanguage)
     }
 }
 

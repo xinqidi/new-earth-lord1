@@ -12,6 +12,9 @@ struct RootView: View {
     /// 认证管理器
     @StateObject private var authManager = AuthManager()
 
+    /// 语言管理器
+    @EnvironmentObject private var languageManager: LanguageManager
+
     /// 启动页是否完成
     @State private var splashFinished = false
 
@@ -36,6 +39,8 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.3), value: splashFinished)
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
         .animation(.easeInOut(duration: 0.3), value: authManager.needsPasswordSetup)
+        // 🔑 关键修复：当语言改变时，强制重新渲染整个 View 树
+        .id(languageManager.currentLanguage)
     }
 }
 

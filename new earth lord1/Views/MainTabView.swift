@@ -9,38 +9,56 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab = 0
+    @EnvironmentObject private var languageManager: LanguageManager
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        // 强制访问 currentLanguage 以触发重新渲染
+        let _ = languageManager.currentLanguage
+
+        return TabView(selection: $selectedTab) {
             MapTabView()
                 .tabItem {
-                    Image(systemName: "map.fill")
-                    Text("地图".localized)
+                    Label {
+                        Text(languageManager.localizedString("地图"))
+                    } icon: {
+                        Image(systemName: "map.fill")
+                    }
                 }
                 .tag(0)
 
             TerritoryTabView()
                 .tabItem {
-                    Image(systemName: "flag.fill")
-                    Text("领地".localized)
+                    Label {
+                        Text(languageManager.localizedString("领地"))
+                    } icon: {
+                        Image(systemName: "flag.fill")
+                    }
                 }
                 .tag(1)
 
             ProfileTabView()
                 .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("个人".localized)
+                    Label {
+                        Text(languageManager.localizedString("个人"))
+                    } icon: {
+                        Image(systemName: "person.fill")
+                    }
                 }
                 .tag(2)
 
             MoreTabView()
                 .tabItem {
-                    Image(systemName: "ellipsis")
-                    Text("更多".localized)
+                    Label {
+                        Text(languageManager.localizedString("更多"))
+                    } icon: {
+                        Image(systemName: "ellipsis")
+                    }
                 }
                 .tag(3)
         }
         .tint(ApocalypseTheme.primary)
+        // 强制在语言变化时重新渲染
+        .id(languageManager.currentLanguage)
     }
 }
 

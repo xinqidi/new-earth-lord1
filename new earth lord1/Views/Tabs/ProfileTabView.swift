@@ -218,7 +218,7 @@ struct ProfileTabView: View {
                                 .font(.body)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                             Spacer()
-                            Text(languageManager.currentLanguage.displayName)
+                            Text(languageManager.currentLanguage.displayName(languageManager: languageManager))
                                 .font(.subheadline)
                                 .foregroundColor(ApocalypseTheme.textSecondary)
                             Image(systemName: "chevron.right")
@@ -356,6 +356,8 @@ struct ProfileTabView: View {
         .sheet(isPresented: $showingLanguagePicker) {
             languagePickerSheet
         }
+        // 🔑 强制在语言变化时重新渲染
+        .id(languageManager.currentLanguage)
     }
 
     // MARK: - 语言选择器
@@ -373,7 +375,7 @@ struct ProfileTabView: View {
                             showingLanguagePicker = false
                         }) {
                             HStack {
-                                Text(language.displayName)
+                                Text(language.displayName(languageManager: languageManager))
                                     .foregroundColor(ApocalypseTheme.textPrimary)
                                 Spacer()
                                 if languageManager.currentLanguage == language {
