@@ -14,11 +14,17 @@ struct ProfileTabView: View {
     /// 认证管理器
     @EnvironmentObject private var authManager: AuthManager
 
+    /// 语言管理器
+    @EnvironmentObject private var languageManager: LanguageManager
+
     /// 是否显示退出登录确认对话框
     @State private var showingSignOutConfirm = false
 
     /// 是否显示删除账户确认对话框
     @State private var showingDeleteAccountConfirm = false
+
+    /// 是否显示语言选择器
+    @State private var showingLanguagePicker = false
 
     /// 用户输入的确认文本
     @State private var deleteConfirmText = ""
@@ -199,6 +205,35 @@ struct ProfileTabView: View {
                         .background(ApocalypseTheme.textMuted.opacity(0.3))
                         .padding(.leading, 52)
 
+                    // 语言
+                    Button(action: {
+                        showingLanguagePicker = true
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                                .font(.body)
+                                .foregroundColor(.orange)
+                                .frame(width: 24)
+                            Text("语言")
+                                .font(.body)
+                                .foregroundColor(ApocalypseTheme.textPrimary)
+                            Spacer()
+                            Text(languageManager.currentLanguage.displayName)
+                                .font(.subheadline)
+                                .foregroundColor(ApocalypseTheme.textSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(ApocalypseTheme.textMuted)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(ApocalypseTheme.cardBackground)
+                    }
+
+                    Divider()
+                        .background(ApocalypseTheme.textMuted.opacity(0.3))
+                        .padding(.leading, 52)
+
                     // 帮助
                     Button(action: {
                         // TODO: 跳转到帮助页
@@ -317,6 +352,51 @@ struct ProfileTabView: View {
         }
         .sheet(isPresented: $showingDeleteAccountConfirm) {
             deleteAccountConfirmSheet
+        }
+        .sheet(isPresented: $showingLanguagePicker) {
+            languagePickerSheet
+        }
+    }
+
+    // MARK: - 语言选择器
+
+    private var languagePickerSheet: some View {
+        NavigationView {
+            ZStack {
+                ApocalypseTheme.background
+                    .ignoresSafeArea()
+
+                List {
+                    ForEach(AppLanguage.allCases) { language in
+                        Button(action: {
+                            languageManager.setLanguage(language)
+                            showingLanguagePicker = false
+                        }) {
+                            HStack {
+                                Text(language.displayName)
+                                    .foregroundColor(ApocalypseTheme.textPrimary)
+                                Spacer()
+                                if languageManager.currentLanguage == language {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(ApocalypseTheme.primary)
+                                }
+                            }
+                        }
+                        .listRowBackground(ApocalypseTheme.cardBackground)
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("选择语言")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        showingLanguagePicker = false
+                    }
+                    .foregroundColor(ApocalypseTheme.primary)
+                }
+            }
         }
     }
 

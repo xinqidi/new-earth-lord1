@@ -7,31 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A300F5602F0552FC00D505D0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A300F55F2F0552FC00D505D0 /* Localizable.xcstrings */; };
 		A316D5912EFEBA78005C3683 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = A316D5902EFEBA78005C3683 /* Supabase */; };
 		A35030002F041D2800C4DD03 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A3502FFF2F041D2800C4DD03 /* GoogleSignIn */; };
 		A35030022F041D2800C4DD03 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A35030012F041D2800C4DD03 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A300F55F2F0552FC00D505D0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		A39941402EFAC19E00C13F98 /* new earth lord1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "new earth lord1.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A35030042F04255000C4DD03 /* Exceptions for "new earth lord1" folder in "new earth lord1" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"new-earth-lord1-Info.plist",
-			);
-			target = A399413F2EFAC19E00C13F98 /* new earth lord1 */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A39941422EFAC19E00C13F98 /* new earth lord1 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				A35030042F04255000C4DD03 /* Exceptions for "new earth lord1" folder in "new earth lord1" target */,
-			);
 			path = "new earth lord1";
 			sourceTree = "<group>";
 		};
@@ -54,6 +43,7 @@
 		A39941372EFAC19E00C13F98 = {
 			isa = PBXGroup;
 			children = (
+				A300F55F2F0552FC00D505D0 /* Localizable.xcstrings */,
 				A39941422EFAC19E00C13F98 /* new earth lord1 */,
 				A39941412EFAC19E00C13F98 /* Products */,
 			);
@@ -111,11 +101,12 @@
 				};
 			};
 			buildConfigurationList = A399413B2EFAC19E00C13F98 /* Build configuration list for PBXProject "new earth lord1" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = A39941372EFAC19E00C13F98;
 			minimizedProjectReferenceProxies = 1;
@@ -138,6 +129,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A300F5602F0552FC00D505D0 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -214,6 +206,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -271,6 +264,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
