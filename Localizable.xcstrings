@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earth Lord needs your location to show your coordinates in the apocalyptic world and help you explore and claim territories."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。"
+          }
+        }
+      }
+    },
     "0" : {
       "localizations" : {
         "en" : {
@@ -269,6 +286,23 @@
         }
       }
     },
+    "前往设置" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前往设置"
+          }
+        }
+      }
+    },
     "功能与设置" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -386,6 +420,23 @@
         }
       }
     },
+    "定位权限被拒绝" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Permission Denied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位权限被拒绝"
+          }
+        }
+      }
+    },
     "密码" : {
       "localizations" : {
         "en" : {
@@ -432,6 +483,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "幸存者档案"
+          }
+        }
+      }
+    },
+    "当前坐标" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Coordinates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前坐标"
           }
         }
       }
@@ -804,6 +872,12 @@
           }
         }
       }
+    },
+    "纬度: %@" : {
+
+    },
+    "经度: %@" : {
+
     },
     "设置" : {
       "extractionState" : "stale",
