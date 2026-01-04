@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "(%lld)" : {
+
+    },
     "《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -197,6 +200,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用 Google 登录"
+          }
+        }
+      }
+    },
+    "停止圈地" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Claiming"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止圈地"
           }
         }
       }
@@ -483,6 +503,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "幸存者档案"
+          }
+        }
+      }
+    },
+    "开始圈地" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Claiming"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始圈地"
           }
         }
       }

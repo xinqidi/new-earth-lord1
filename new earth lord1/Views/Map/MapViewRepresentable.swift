@@ -21,6 +21,15 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 是否已完成首次定位（防止重复居中）
     @Binding var hasLocatedUser: Bool
 
+    /// 追踪路径坐标数组（WGS-84）
+    @Binding var trackingPath: [CLLocationCoordinate2D]
+
+    /// 路径更新版本号
+    var pathUpdateVersion: Int
+
+    /// 是否正在追踪
+    var isTracking: Bool
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建 MKMapView
@@ -48,9 +57,10 @@ struct MapViewRepresentable: UIViewRepresentable {
         return mapView
     }
 
-    /// 更新 MKMapView（空实现即可）
+    /// 更新 MKMapView
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        // 地图更新由 Coordinator 处理
+        // 更新追踪路径
+        context.coordinator.updateTrackingPath(on: uiView, path: trackingPath)
     }
 
     /// 创建 Coordinator（处理地图代理事件）
@@ -146,6 +156,48 @@ struct MapViewRepresentable: UIViewRepresentable {
         /// 地图加载完成时调用
         func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
             print("✅ [地图] 地图加载完成")
+        }
+
+        // MARK: - Path Tracking
+
+        /// 更新追踪路径
+        /// - Parameters:
+        ///   - mapView: 地图视图
+        ///   - path: 路径坐标数组（WGS-84）
+        func updateTrackingPath(on mapView: MKMapView, path: [CLLocationCoordinate2D]) {
+            // 移除旧的轨迹
+            let oldOverlays = mapView.overlays.filter { $0 is MKPolyline }
+            mapView.removeOverlays(oldOverlays)
+
+            // 如果没有路径点，直接返回
+            guard path.count >= 2 else { return }
+
+            // 转换坐标：WGS-84 → GCJ-02（解决中国 GPS 偏移问题）
+            let convertedPath = path.map { CoordinateConverter.wgs84ToGcj02($0) }
+
+            // 创建轨迹线
+            let polyline = MKPolyline(coordinates: convertedPath, count: convertedPath.count)
+
+            // 添加到地图
+            mapView.addOverlay(polyline)
+
+            print("🛤️ [轨迹] 更新轨迹，共 \(path.count) 个点")
+        }
+
+        /// ⭐ 关键方法：渲染轨迹线（必须实现，否则轨迹不显示！）
+        /// - Parameters:
+        ///   - mapView: 地图视图
+        ///   - overlay: 覆盖物（轨迹线）
+        /// - Returns: 渲染器
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let polyline = overlay as? MKPolyline {
+                let renderer = MKPolylineRenderer(polyline: polyline)
+                renderer.strokeColor = UIColor.cyan // 青色轨迹线
+                renderer.lineWidth = 5 // 线宽 5pt
+                renderer.lineCap = .round // 圆头
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
         }
     }
 }

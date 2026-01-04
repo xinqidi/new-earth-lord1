@@ -25,10 +25,28 @@ class LocationManager: NSObject, ObservableObject {
     /// 定位错误信息
     @Published var locationError: String?
 
+    /// 是否正在追踪路径
+    @Published var isTracking: Bool = false
+
+    /// 路径坐标数组（存储原始 WGS-84 坐标）
+    @Published var pathCoordinates: [CLLocationCoordinate2D] = []
+
+    /// 路径更新版本号（用于触发 SwiftUI 更新）
+    @Published var pathUpdateVersion: Int = 0
+
+    /// 路径是否闭合（用于圈地判断）
+    @Published var isPathClosed: Bool = false
+
     // MARK: - Private Properties
 
     /// CoreLocation 管理器
     private let locationManager = CLLocationManager()
+
+    /// 当前位置（用于 Timer 采点）
+    private var currentLocation: CLLocation?
+
+    /// 路径更新定时器（每2秒采样一次）
+    private var pathUpdateTimer: Timer?
 
     // MARK: - Computed Properties
 
@@ -83,6 +101,78 @@ class LocationManager: NSObject, ObservableObject {
         print("🛑 [定位管理] 停止更新位置")
         locationManager.stopUpdatingLocation()
     }
+
+    // MARK: - Path Tracking Methods
+
+    /// 开始路径追踪
+    func startPathTracking() {
+        guard isAuthorized else {
+            print("⚠️ [路径追踪] 未授权定位，无法开始追踪")
+            return
+        }
+
+        print("🚀 [路径追踪] 开始追踪路径")
+
+        isTracking = true
+        isPathClosed = false
+
+        // 确保定位已开启
+        if locationManager.location == nil {
+            startUpdatingLocation()
+        }
+
+        // 启动定时器，每2秒采样一次
+        pathUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.recordPathPoint()
+        }
+    }
+
+    /// 停止路径追踪
+    func stopPathTracking() {
+        print("⏸️ [路径追踪] 停止追踪路径")
+
+        isTracking = false
+
+        // 停止定时器
+        pathUpdateTimer?.invalidate()
+        pathUpdateTimer = nil
+    }
+
+    /// 清除路径
+    func clearPath() {
+        print("🗑️ [路径追踪] 清除路径")
+
+        pathCoordinates.removeAll()
+        pathUpdateVersion += 1
+        isPathClosed = false
+    }
+
+    /// 记录路径点（定时器回调）
+    private func recordPathPoint() {
+        guard let location = currentLocation else {
+            print("⚠️ [路径追踪] 当前位置为空，跳过采样")
+            return
+        }
+
+        let coordinate = location.coordinate
+
+        // 检查是否与上一个点距离足够远（>10米才记录）
+        if let lastCoordinate = pathCoordinates.last {
+            let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
+            let distance = location.distance(from: lastLocation)
+
+            if distance < 10 {
+                print("📏 [路径追踪] 距离上个点仅 \(String(format: "%.1f", distance))米，跳过")
+                return
+            }
+        }
+
+        // 记录新点
+        pathCoordinates.append(coordinate)
+        pathUpdateVersion += 1
+
+        print("📍 [路径追踪] 记录新点: 纬度 \(coordinate.latitude), 经度 \(coordinate.longitude)，当前共 \(pathCoordinates.count) 个点")
+    }
 }
 
 // MARK: - CLLocationManagerDelegate
@@ -109,6 +199,9 @@ extension LocationManager: CLLocationManagerDelegate {
     /// 成功获取位置时调用
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
+
+        // 更新当前位置（供 Timer 采点使用）
+        currentLocation = location
 
         // 更新用户位置
         DispatchQueue.main.async {

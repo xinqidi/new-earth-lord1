@@ -39,9 +39,12 @@ struct MapTabView: View {
             // 背景地图
             MapViewRepresentable(
                 userLocation: $userLocation,
-                hasLocatedUser: $hasLocatedUser
+                hasLocatedUser: $hasLocatedUser,
+                trackingPath: $locationManager.pathCoordinates,
+                pathUpdateVersion: locationManager.pathUpdateVersion,
+                isTracking: locationManager.isTracking
             )
-            .ignoresSafeArea()
+            .edgesIgnoringSafeArea(.top) // 只忽略顶部安全区域，保留底部给标签栏
 
             // 权限被拒绝时的提示卡片
             if locationManager.isDenied {
@@ -91,23 +94,48 @@ struct MapTabView: View {
                 }
             }
 
-            // 右下角定位按钮
+            // 右下角按钮组
             VStack {
                 Spacer()
 
                 HStack {
                     Spacer()
 
-                    Button(action: {
-                        requestLocationAndCenter()
-                    }) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 20))
+                    VStack(spacing: 16) {
+                        // 圈地按钮
+                        Button(action: {
+                            togglePathTracking()
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: locationManager.isTracking ? "stop.fill" : "flag.fill")
+                                    .font(.system(size: 16))
+                                Text(locationManager.isTracking ? "停止圈地".localized : "开始圈地".localized)
+                                    .font(.system(size: 14, weight: .semibold))
+                                if locationManager.isTracking && !locationManager.pathCoordinates.isEmpty {
+                                    Text("(\(locationManager.pathCoordinates.count))")
+                                        .font(.system(size: 12))
+                                }
+                            }
                             .foregroundColor(.white)
-                            .padding()
-                            .background(ApocalypseTheme.primary)
-                            .clipShape(Circle())
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(locationManager.isTracking ? Color.red : ApocalypseTheme.primary)
+                            .clipShape(Capsule())
                             .shadow(color: .black.opacity(0.3), radius: 10)
+                        }
+
+                        // 定位按钮
+                        Button(action: {
+                            requestLocationAndCenter()
+                        }) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(ApocalypseTheme.primary)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 10)
+                        }
                     }
                     .padding()
                 }
@@ -185,6 +213,25 @@ struct MapTabView: View {
         } else {
             // 未确定，请求权限
             locationManager.requestPermission()
+        }
+    }
+
+    /// 切换路径追踪状态
+    private func togglePathTracking() {
+        if locationManager.isTracking {
+            // 停止追踪
+            locationManager.stopPathTracking()
+            print("⏸️ [地图页] 停止圈地")
+        } else {
+            // 开始追踪
+            if locationManager.isAuthorized {
+                locationManager.startPathTracking()
+                print("🚀 [地图页] 开始圈地")
+            } else {
+                // 未授权，请求权限
+                print("⚠️ [地图页] 未授权定位，无法开始圈地")
+                locationManager.requestPermission()
+            }
         }
     }
 
