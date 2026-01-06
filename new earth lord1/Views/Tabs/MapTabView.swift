@@ -30,6 +30,9 @@ struct MapTabView: View {
     /// 是否显示权限提示
     @State private var showPermissionAlert = false
 
+    /// 是否显示验证结果横幅
+    @State private var showValidationBanner = false
+
     // MARK: - Body
 
     var body: some View {
@@ -125,6 +128,17 @@ struct MapTabView: View {
                 .zIndex(1000) // 确保在最上层
             }
 
+            // 验证结果横幅（根据验证结果显示成功或失败）
+            if showValidationBanner {
+                VStack {
+                    validationResultBanner
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showValidationBanner)
+                .zIndex(999) // 低于速度警告
+            }
+
             // 右下角按钮组
             VStack {
                 Spacer()
@@ -205,7 +219,51 @@ struct MapTabView: View {
         .onAppear {
             requestLocationPermission()
         }
+        .onReceive(locationManager.$isPathClosed) { isClosed in
+            // 当检测到闭环时，延迟显示验证横幅
+            if isClosed {
+                // 延迟 0.1 秒，确保验证逻辑已完成
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation {
+                        showValidationBanner = true
+                    }
+                    // 5 秒后自动隐藏
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        withAnimation {
+                            showValidationBanner = false
+                        }
+                    }
+                }
+            }
+        }
         .id(languageManager.currentLanguage) // 语言切换时重新渲染
+    }
+
+    // MARK: - Computed Properties
+
+    /// 验证结果横幅（根据验证结果显示成功或失败）
+    private var validationResultBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: locationManager.territoryValidationPassed
+                  ? "checkmark.circle.fill"
+                  : "xmark.circle.fill")
+                .font(.body)
+            if locationManager.territoryValidationPassed {
+                Text("圈地成功！领地面积: \(String(format: "%.0f", locationManager.calculatedArea))m²")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            } else {
+                Text(locationManager.territoryValidationError ?? "验证失败")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(locationManager.territoryValidationPassed ? Color.green : Color.red)
+        .padding(.top, 50)
     }
 
     // MARK: - Private Methods
