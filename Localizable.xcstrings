@@ -21,6 +21,12 @@
         }
       }
     },
+    "○ 未追踪" : {
+
+    },
+    "● 追踪中" : {
+
+    },
     "0" : {
       "localizations" : {
         "en" : {
@@ -373,6 +379,15 @@
         }
       }
     },
+    "圈地功能测试" : {
+
+    },
+    "圈地测试" : {
+
+    },
+    "圈地测试日志" : {
+
+    },
     "地图" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -473,6 +488,9 @@
         }
       }
     },
+    "导出日志" : {
+
+    },
     "帮助" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -507,6 +525,9 @@
         }
       }
     },
+    "开发测试" : {
+
+    },
     "开始圈地" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -523,6 +544,9 @@
           }
         }
       }
+    },
+    "开始圈地追踪后，这里将显示调试信息" : {
+
     },
     "当前坐标" : {
       "extractionState" : "stale",
@@ -658,6 +682,12 @@
         }
       }
     },
+    "日志: %lld/200" : {
+
+    },
+    "暂无日志" : {
+
+    },
     "更多" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -674,6 +704,9 @@
           }
         }
       }
+    },
+    "查看圈地过程的调试日志" : {
+
     },
     "正在初始化..." : {
       "extractionState" : "stale",
@@ -776,6 +809,9 @@
         }
       }
     },
+    "测试功能和调试工具" : {
+
+    },
     "测试数据库连接状态" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -808,6 +844,9 @@
           }
         }
       }
+    },
+    "清空日志" : {
+
     },
     "游戏进度和成就" : {
       "extractionState" : "stale",
@@ -1228,6 +1267,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通知"
+          }
+        }
+      }
+    },
+    "速度较快（%.1f km/h），请放慢速度" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed is high (%.1f km/h), please slow down"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度较快（%.1f km/h），请放慢速度"
+          }
+        }
+      }
+    },
+    "速度过快（%.1f km/h），已自动停止圈地" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed too fast (%.1f km/h), claiming stopped automatically"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度过快（%.1f km/h），已自动停止圈地"
           }
         }
       }

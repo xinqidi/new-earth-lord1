@@ -11,10 +11,10 @@ import MapKit
 
 struct MapTabView: View {
 
-    // MARK: - State Objects
+    // MARK: - Environment Objects
 
     /// GPS 定位管理器
-    @StateObject private var locationManager = LocationManager()
+    @EnvironmentObject private var locationManager: LocationManager
 
     /// 语言管理器
     @EnvironmentObject private var languageManager: LanguageManager
@@ -42,7 +42,8 @@ struct MapTabView: View {
                 hasLocatedUser: $hasLocatedUser,
                 trackingPath: $locationManager.pathCoordinates,
                 pathUpdateVersion: locationManager.pathUpdateVersion,
-                isTracking: locationManager.isTracking
+                isTracking: locationManager.isTracking,
+                isPathClosed: locationManager.isPathClosed
             )
             .edgesIgnoringSafeArea(.top) // 只忽略顶部安全区域，保留底部给标签栏
 
@@ -92,6 +93,36 @@ struct MapTabView: View {
 
                     Spacer()
                 }
+            }
+
+            // 速度警告横幅（使用 ZStack 确保在最上层）
+            if let warning = locationManager.speedWarning {
+                VStack {
+                    HStack {
+                        Image(systemName: locationManager.isOverSpeed ? "exclamationmark.triangle.fill" : "exclamationmark.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.white)
+
+                        Text(warning)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 20)
+                    .background(locationManager.isOverSpeed ? Color.red : Color.orange)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.5), radius: 15)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 60) // 避免遮挡状态栏
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: locationManager.speedWarning)
+                .zIndex(1000) // 确保在最上层
             }
 
             // 右下角按钮组
@@ -248,4 +279,5 @@ struct MapTabView: View {
 #Preview {
     MapTabView()
         .environmentObject(LanguageManager.shared)
+        .environmentObject(LocationManager())
 }

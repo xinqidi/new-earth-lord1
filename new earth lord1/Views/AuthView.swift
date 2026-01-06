@@ -125,13 +125,13 @@ struct AuthView: View {
         .sheet(isPresented: $showingResetPassword) {
             resetPasswordSheet
         }
-        .onChange(of: authManager.otpVerified) { verified in
+        .onChange(of: authManager.otpVerified) { _, verified in
             // 注册流程：验证码验证成功后进入第三步
             if verified && isRegistering {
                 registerStep = 3
             }
         }
-        .onChange(of: authManager.errorMessage) { error in
+        .onChange(of: authManager.errorMessage) { _, error in
             if let error = error {
                 showToastMessage(error)
             }

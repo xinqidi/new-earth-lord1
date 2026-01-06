@@ -30,6 +30,9 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 是否正在追踪
     var isTracking: Bool
 
+    /// 路径是否已闭合
+    var isPathClosed: Bool
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建 MKMapView
@@ -60,7 +63,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 更新 MKMapView
     func updateUIView(_ uiView: MKMapView, context: Context) {
         // 更新追踪路径
-        context.coordinator.updateTrackingPath(on: uiView, path: trackingPath)
+        context.coordinator.updateTrackingPath(on: uiView, path: trackingPath, isClosed: isPathClosed)
     }
 
     /// 创建 Coordinator（处理地图代理事件）
@@ -99,6 +102,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         /// 首次居中标志（防止重复居中，不影响用户手动拖动）
         private var hasInitialCentered = false
+
+        /// 路径是否已闭合（用于渲染时判断颜色）
+        private var isPathClosed = false
 
         init(_ parent: MapViewRepresentable) {
             self.parent = parent
@@ -164,39 +170,66 @@ struct MapViewRepresentable: UIViewRepresentable {
         /// - Parameters:
         ///   - mapView: 地图视图
         ///   - path: 路径坐标数组（WGS-84）
-        func updateTrackingPath(on mapView: MKMapView, path: [CLLocationCoordinate2D]) {
-            // 移除旧的轨迹
-            let oldOverlays = mapView.overlays.filter { $0 is MKPolyline }
+        ///   - isClosed: 路径是否已闭合
+        func updateTrackingPath(on mapView: MKMapView, path: [CLLocationCoordinate2D], isClosed: Bool) {
+            // 保存闭合状态（用于渲染）
+            self.isPathClosed = isClosed
+
+            // 移除旧的轨迹和多边形
+            let oldOverlays = mapView.overlays.filter { $0 is MKPolyline || $0 is MKPolygon }
             mapView.removeOverlays(oldOverlays)
 
             // 如果没有路径点，直接返回
             guard path.count >= 2 else { return }
 
             // 转换坐标：WGS-84 → GCJ-02（解决中国 GPS 偏移问题）
-            let convertedPath = path.map { CoordinateConverter.wgs84ToGcj02($0) }
+            var convertedPath = path.map { CoordinateConverter.wgs84ToGcj02($0) }
+
+            // ⚠️ 如果路径已闭合，添加一条线段连接到起点（视觉闭合）
+            if isClosed && path.count >= 3, let firstPoint = convertedPath.first {
+                convertedPath.append(firstPoint)
+            }
 
             // 创建轨迹线
             let polyline = MKPolyline(coordinates: convertedPath, count: convertedPath.count)
-
-            // 添加到地图
             mapView.addOverlay(polyline)
 
-            print("🛤️ [轨迹] 更新轨迹，共 \(path.count) 个点")
+            // 如果路径已闭合，创建多边形填充
+            if isClosed && path.count >= 3 {
+                // 多边形使用原始路径（不需要手动闭合）
+                let originalConverted = path.map { CoordinateConverter.wgs84ToGcj02($0) }
+                let polygon = MKPolygon(coordinates: originalConverted, count: originalConverted.count)
+                mapView.addOverlay(polygon)
+                print("🟢 [轨迹] 路径已闭合，添加多边形填充")
+            }
+
+            print("🛤️ [轨迹] 更新轨迹，共 \(path.count) 个点，闭合状态: \(isClosed)")
         }
 
-        /// ⭐ 关键方法：渲染轨迹线（必须实现，否则轨迹不显示！）
+        /// ⭐ 关键方法：渲染轨迹线和多边形（必须实现，否则不显示！）
         /// - Parameters:
         ///   - mapView: 地图视图
-        ///   - overlay: 覆盖物（轨迹线）
+        ///   - overlay: 覆盖物（轨迹线或多边形）
         /// - Returns: 渲染器
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            // 渲染轨迹线
             if let polyline = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: polyline)
-                renderer.strokeColor = UIColor.cyan // 青色轨迹线
+                // 根据闭合状态选择颜色：闭合 = 绿色，未闭合 = 青色
+                renderer.strokeColor = isPathClosed ? UIColor.systemGreen : UIColor.cyan
                 renderer.lineWidth = 5 // 线宽 5pt
                 renderer.lineCap = .round // 圆头
                 return renderer
             }
+
+            // 渲染多边形填充
+            if let polygon = overlay as? MKPolygon {
+                let renderer = MKPolygonRenderer(polygon: polygon)
+                renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25) // 半透明绿色填充
+                renderer.strokeColor = .clear // 不绘制边框（轨迹线已经绘制）
+                return renderer
+            }
+
             return MKOverlayRenderer(overlay: overlay)
         }
     }
