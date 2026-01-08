@@ -304,27 +304,39 @@ class TerritoryManager {
         return ccw(p1, p3, p4) != ccw(p2, p3, p4) && ccw(p1, p2, p3) != ccw(p1, p2, p4)
     }
 
-    /// 检查路径是否穿越他人领地边界
+    /// 检查路径是否穿越领地边界
     /// - Parameters:
     ///   - path: 当前路径坐标数组
     ///   - currentUserId: 当前用户 ID
+    ///   - includeOwnTerritories: 是否包含自己的领地（默认false，只检测他人领地）
     /// - Returns: 碰撞检测结果
-    func checkPathCrossTerritory(path: [CLLocationCoordinate2D], currentUserId: String) -> CollisionResult {
+    func checkPathCrossTerritory(path: [CLLocationCoordinate2D], currentUserId: String, includeOwnTerritories: Bool = false) -> CollisionResult {
         guard path.count >= 2 else { return .safe }
 
-        let otherTerritories = territories.filter { territory in
-            territory.userId.lowercased() != currentUserId.lowercased()
+        // 根据参数决定检测哪些领地
+        let targetTerritories: [Territory]
+        if includeOwnTerritories {
+            // 检测所有领地（包括自己的）
+            targetTerritories = territories
+        } else {
+            // 只检测他人领地
+            targetTerritories = territories.filter { territory in
+                territory.userId.lowercased() != currentUserId.lowercased()
+            }
         }
 
-        guard !otherTerritories.isEmpty else { return .safe }
+        guard !targetTerritories.isEmpty else { return .safe }
 
         for i in 0..<(path.count - 1) {
             let pathStart = path[i]
             let pathEnd = path[i + 1]
 
-            for territory in otherTerritories {
+            for territory in targetTerritories {
                 let polygon = territory.toCoordinates()
                 guard polygon.count >= 3 else { continue }
+
+                // 判断是否为自己的领地
+                let isOwnTerritory = territory.userId.lowercased() == currentUserId.lowercased()
 
                 // 检查与领地每条边的相交
                 for j in 0..<polygon.count {
@@ -332,11 +344,12 @@ class TerritoryManager {
                     let boundaryEnd = polygon[(j + 1) % polygon.count]
 
                     if segmentsIntersect(p1: pathStart, p2: pathEnd, p3: boundaryStart, p4: boundaryEnd) {
-                        TerritoryLogger.shared.log("路径碰撞：轨迹穿越他人领地边界", type: .error)
+                        let message = isOwnTerritory ? "轨迹不能穿越自己已有的领地！" : "轨迹不能穿越他人领地！"
+                        TerritoryLogger.shared.log("路径碰撞：轨迹穿越\(isOwnTerritory ? "自己的" : "他人")领地边界", type: .error)
                         return CollisionResult(
                             hasCollision: true,
                             collisionType: .pathCrossTerritory,
-                            message: "轨迹不能穿越他人领地！",
+                            message: message,
                             closestDistance: 0,
                             warningLevel: .violation
                         )
@@ -345,11 +358,12 @@ class TerritoryManager {
 
                 // 检查路径点是否在领地内
                 if isPointInPolygon(point: pathEnd, polygon: polygon) {
-                    TerritoryLogger.shared.log("路径碰撞：轨迹点进入他人领地", type: .error)
+                    let message = isOwnTerritory ? "轨迹不能进入自己已有的领地！" : "轨迹不能进入他人领地！"
+                    TerritoryLogger.shared.log("路径碰撞：轨迹点进入\(isOwnTerritory ? "自己的" : "他人")领地", type: .error)
                     return CollisionResult(
                         hasCollision: true,
                         collisionType: .pointInTerritory,
-                        message: "轨迹不能进入他人领地！",
+                        message: message,
                         closestDistance: 0,
                         warningLevel: .violation
                     )
@@ -360,32 +374,47 @@ class TerritoryManager {
         return .safe
     }
 
-    /// 计算当前位置到他人领地的最近距离
+    /// 计算当前位置到领地的最近距离
     /// - Parameters:
     ///   - location: 当前位置
     ///   - currentUserId: 当前用户 ID
-    /// - Returns: 最近距离（米）
-    func calculateMinDistanceToTerritories(location: CLLocationCoordinate2D, currentUserId: String) -> Double {
-        let otherTerritories = territories.filter { territory in
-            territory.userId.lowercased() != currentUserId.lowercased()
+    ///   - includeOwnTerritories: 是否包含自己的领地（默认false，只计算到他人领地的距离）
+    /// - Returns: (最近距离（米）, 是否为自己的领地)
+    func calculateMinDistanceToTerritories(location: CLLocationCoordinate2D, currentUserId: String, includeOwnTerritories: Bool = false) -> (distance: Double, isOwnTerritory: Bool) {
+        // 根据参数决定检测哪些领地
+        let targetTerritories: [Territory]
+        if includeOwnTerritories {
+            // 检测所有领地（包括自己的）
+            targetTerritories = territories
+        } else {
+            // 只检测他人领地
+            targetTerritories = territories.filter { territory in
+                territory.userId.lowercased() != currentUserId.lowercased()
+            }
         }
 
-        guard !otherTerritories.isEmpty else { return Double.infinity }
+        guard !targetTerritories.isEmpty else { return (Double.infinity, false) }
 
         var minDistance = Double.infinity
+        var isClosestOwnTerritory = false
         let currentLocation = CLLocation(latitude: location.latitude, longitude: location.longitude)
 
-        for territory in otherTerritories {
+        for territory in targetTerritories {
             let polygon = territory.toCoordinates()
+            let isOwnTerritory = territory.userId.lowercased() == currentUserId.lowercased()
 
             for vertex in polygon {
                 let vertexLocation = CLLocation(latitude: vertex.latitude, longitude: vertex.longitude)
                 let distance = currentLocation.distance(from: vertexLocation)
-                minDistance = min(minDistance, distance)
+
+                if distance < minDistance {
+                    minDistance = distance
+                    isClosestOwnTerritory = isOwnTerritory
+                }
             }
         }
 
-        return minDistance
+        return (minDistance, isClosestOwnTerritory)
     }
 
     /// 综合碰撞检测（主方法）
@@ -396,36 +425,37 @@ class TerritoryManager {
     func checkPathCollisionComprehensive(path: [CLLocationCoordinate2D], currentUserId: String) -> CollisionResult {
         guard path.count >= 2 else { return .safe }
 
-        // 1. 检查路径是否穿越他人领地
-        let crossResult = checkPathCrossTerritory(path: path, currentUserId: currentUserId)
+        // 1. 检查路径是否穿越所有领地（包括自己已有的领地）
+        let crossResult = checkPathCrossTerritory(path: path, currentUserId: currentUserId, includeOwnTerritories: true)
         if crossResult.hasCollision {
             return crossResult
         }
 
-        // 2. 计算到最近领地的距离
+        // 2. 计算到最近领地的距离（包括自己的领地）
         guard let lastPoint = path.last else { return .safe }
-        let minDistance = calculateMinDistanceToTerritories(location: lastPoint, currentUserId: currentUserId)
+        let (minDistance, isOwnTerritory) = calculateMinDistanceToTerritories(location: lastPoint, currentUserId: currentUserId, includeOwnTerritories: true)
 
         // 3. 根据距离确定预警级别和消息
         let warningLevel: WarningLevel
         let message: String?
+        let territoryType = isOwnTerritory ? "已有领地" : "他人领地"
 
         if minDistance > 100 {
             warningLevel = .safe
             message = nil
         } else if minDistance > 50 {
             warningLevel = .caution
-            message = "注意：距离他人领地 \(Int(minDistance))m"
+            message = "注意：距离\(territoryType) \(Int(minDistance))m"
         } else if minDistance > 25 {
             warningLevel = .warning
-            message = "警告：正在靠近他人领地（\(Int(minDistance))m）"
+            message = "警告：正在靠近\(territoryType)（\(Int(minDistance))m）"
         } else {
             warningLevel = .danger
-            message = "危险：即将进入他人领地！（\(Int(minDistance))m）"
+            message = "危险：即将进入\(territoryType)！（\(Int(minDistance))m）"
         }
 
         if warningLevel != .safe {
-            TerritoryLogger.shared.log("距离预警：\(warningLevel.description)，距离 \(Int(minDistance))m", type: .warning)
+            TerritoryLogger.shared.log("距离预警：\(warningLevel.description)，距离\(territoryType) \(Int(minDistance))m", type: .warning)
         }
 
         return CollisionResult(

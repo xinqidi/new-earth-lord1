@@ -69,12 +69,6 @@ class LocationManager: NSObject, ObservableObject {
     /// 位置过滤器（Kalman 简化版）
     private let locationFilter = LocationFilter()
 
-    /// GPS 稳定期计数器（前10个点用于稳定GPS）
-    private var gpsWarmupCounter: Int = 0
-
-    /// GPS 稳定期阈值
-    private let gpsWarmupThreshold: Int = 10
-
     /// 上一个记录点的时间戳（用于速度计算）
     private var lastRecordedTimestamp: Date?
 
@@ -185,9 +179,8 @@ class LocationManager: NSObject, ObservableObject {
         calculatedArea = 0
         lastClosureCheckPointCount = 0
 
-        // 重置位置过滤器和GPS稳定期
+        // 重置位置过滤器
         locationFilter.reset()
-        gpsWarmupCounter = 0
         lastRecordedTimestamp = nil
 
         // 记录日志
@@ -715,22 +708,7 @@ class LocationManager: NSObject, ObservableObject {
             return
         }
 
-        // ✅ 步骤2：GPS稳定期检测（前10个位置点用于稳定GPS，不记录）
-        if gpsWarmupCounter < gpsWarmupThreshold {
-            gpsWarmupCounter += 1
-            print("🔥 [GPS预热] \(gpsWarmupCounter)/\(gpsWarmupThreshold) - 等待GPS稳定...")
-            TerritoryLogger.shared.log("GPS预热中 (\(gpsWarmupCounter)/\(gpsWarmupThreshold))，等待稳定", type: .info)
-            return
-        }
-
-        // GPS已稳定，第一次通过时记录日志
-        if gpsWarmupCounter == gpsWarmupThreshold {
-            print("✅ [GPS预热] GPS已稳定，开始记录轨迹点")
-            TerritoryLogger.shared.log("GPS已稳定，开始记录轨迹", type: .success)
-            gpsWarmupCounter += 1 // 设为11，避免重复打印
-        }
-
-        // ✅ 步骤3：速度验证（防止作弊）- 使用过滤后的位置
+        // ✅ 步骤2：速度验证（防止作弊）- 使用过滤后的位置
         guard validateMovementSpeed(newLocation: filteredLocation) else {
             print("🚫 [路径追踪] 速度验证失败，停止记录")
             return
