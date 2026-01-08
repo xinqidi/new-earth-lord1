@@ -66,6 +66,18 @@ class LocationManager: NSObject, ObservableObject {
     /// 当前位置（用于 Timer 采点）
     private var currentLocation: CLLocation?
 
+    /// 位置过滤器（Kalman 简化版）
+    private let locationFilter = LocationFilter()
+
+    /// GPS 稳定期计数器（前10个点用于稳定GPS）
+    private var gpsWarmupCounter: Int = 0
+
+    /// GPS 稳定期阈值
+    private let gpsWarmupThreshold: Int = 10
+
+    /// 上一个记录点的时间戳（用于速度计算）
+    private var lastRecordedTimestamp: Date?
+
     /// 路径更新定时器（每2秒采样一次）
     private var pathUpdateTimer: Timer?
 
@@ -117,8 +129,8 @@ class LocationManager: NSObject, ObservableObject {
 
         // 配置定位管理器
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest // 最高精度
-        locationManager.distanceFilter = 5 // 移动5米才更新位置（提高采样精度）
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation // 导航级精度（使用传感器融合）
+        locationManager.distanceFilter = kCLDistanceFilterNone // 接收所有位置更新（由我们的过滤器处理）
 
         // 获取当前授权状态
         authorizationStatus = locationManager.authorizationStatus
@@ -172,6 +184,11 @@ class LocationManager: NSObject, ObservableObject {
         territoryValidationError = nil
         calculatedArea = 0
         lastClosureCheckPointCount = 0
+
+        // 重置位置过滤器和GPS稳定期
+        locationFilter.reset()
+        gpsWarmupCounter = 0
+        lastRecordedTimestamp = nil
 
         // 记录日志
         TerritoryLogger.shared.log("开始圈地追踪", type: .info)
@@ -692,56 +709,82 @@ class LocationManager: NSObject, ObservableObject {
             return
         }
 
-        // ✅ GPS 精度检查：只接受精度 ≤ 15 米的位置（提高定位精度要求）
-        guard location.horizontalAccuracy > 0 && location.horizontalAccuracy <= 15 else {
-            print("⚠️ [路径追踪] GPS 精度差 (\(String(format: "%.1f", location.horizontalAccuracy))m)，跳过采样")
-            TerritoryLogger.shared.log("GPS 精度差 (\(String(format: "%.1f", location.horizontalAccuracy))m)，跳过", type: .warning)
+        // ✅ 步骤1：将原始位置传入过滤器，获取过滤后的位置
+        guard let filteredLocation = locationFilter.addLocation(location) else {
+            print("⚠️ [路径追踪] 位置过滤失败（精度差或缓冲区不足），跳过")
             return
         }
 
-        // 速度验证（防止作弊）
-        guard validateMovementSpeed(newLocation: location) else {
+        // ✅ 步骤2：GPS稳定期检测（前10个位置点用于稳定GPS，不记录）
+        if gpsWarmupCounter < gpsWarmupThreshold {
+            gpsWarmupCounter += 1
+            print("🔥 [GPS预热] \(gpsWarmupCounter)/\(gpsWarmupThreshold) - 等待GPS稳定...")
+            TerritoryLogger.shared.log("GPS预热中 (\(gpsWarmupCounter)/\(gpsWarmupThreshold))，等待稳定", type: .info)
+            return
+        }
+
+        // GPS已稳定，第一次通过时记录日志
+        if gpsWarmupCounter == gpsWarmupThreshold {
+            print("✅ [GPS预热] GPS已稳定，开始记录轨迹点")
+            TerritoryLogger.shared.log("GPS已稳定，开始记录轨迹", type: .success)
+            gpsWarmupCounter += 1 // 设为11，避免重复打印
+        }
+
+        // ✅ 步骤3：速度验证（防止作弊）- 使用过滤后的位置
+        guard validateMovementSpeed(newLocation: filteredLocation) else {
             print("🚫 [路径追踪] 速度验证失败，停止记录")
             return
         }
 
-        let coordinate = location.coordinate
+        let filteredCoordinate = filteredLocation.coordinate
 
-        // 检查是否与上一个点距离足够远（>5米才记录，提高轨迹精度）
+        // ✅ 步骤4：检查与上一个记录点的距离（>10米才记录）
         if let lastCoordinate = pathCoordinates.last {
             let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
-            let distance = location.distance(from: lastLocation)
+            let distance = filteredLocation.distance(from: lastLocation)
 
-            if distance < 5 {
-                print("📏 [路径追踪] 距离上个点仅 \(String(format: "%.1f", distance))米，跳过")
+            if distance < 10 {
+                print("📏 [路径追踪] 距离上个点仅 \(String(format: "%.1f", distance))米 (<10m)，跳过")
                 return
             }
 
-            // ✅ GPS 漂移检测：距离过大时判定为GPS跳跃漂移
+            // ✅ 步骤5：GPS 漂移检测（距离过大且精度差 = 漂移）
             // 最高速度30km/h ≈ 8.3m/s，采样间隔2秒，理论最大距离16.6m
             // 考虑误差和加速过程，设置阈值为35米
-            if distance > 35 {
-                print("⚠️ [路径追踪] GPS跳跃检测: 距上个点 \(String(format: "%.1f", distance))m (>35m)，疑似漂移，跳过")
-                TerritoryLogger.shared.log("GPS跳跃 \(String(format: "%.1f", distance))m，跳过", type: .warning)
+            let timeDelta: TimeInterval
+            if let lastTimestamp = lastRecordedTimestamp {
+                timeDelta = filteredLocation.timestamp.timeIntervalSince(lastTimestamp)
+            } else {
+                timeDelta = 2.0  // 首次记录，使用采样间隔
+            }
+
+            let speed = timeDelta > 0 ? distance / timeDelta : 0  // m/s
+            let accuracy = filteredLocation.horizontalAccuracy
+
+            // 综合判断：距离过大 OR (速度异常 AND 精度差)
+            if distance > 35 || (speed > 15 && accuracy > 20) {
+                print("⚠️ [路径追踪] GPS跳跃检测: 距离\(String(format: "%.1f", distance))m, 速度\(String(format: "%.1f", speed))m/s, 精度\(String(format: "%.1f", accuracy))m - 疑似漂移，跳过")
+                TerritoryLogger.shared.log("GPS跳跃检测: 距离\(String(format: "%.1f", distance))m - 跳过", type: .warning)
                 return
             }
         }
 
-        // 记录新点
-        pathCoordinates.append(coordinate)
+        // ✅ 步骤6：记录过滤后的坐标点
+        pathCoordinates.append(filteredCoordinate)
         pathUpdateVersion += 1
+        lastRecordedTimestamp = filteredLocation.timestamp  // 更新时间戳
 
         let count = pathCoordinates.count
-        print("📍 [路径追踪] 记录新点: 纬度 \(coordinate.latitude), 经度 \(coordinate.longitude)，当前共 \(count) 个点，精度 \(String(format: "%.1f", location.horizontalAccuracy))m")
+        print("📍 [路径追踪] 记录新点: 纬度 \(filteredCoordinate.latitude), 经度 \(filteredCoordinate.longitude)，当前共 \(count) 个点，过滤后精度 \(String(format: "%.1f", filteredLocation.horizontalAccuracy))m")
 
         // 记录日志
         if let lastCoordinate = pathCoordinates.dropLast().last {
             let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
-            let currentLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            let currentLocation = CLLocation(latitude: filteredCoordinate.latitude, longitude: filteredCoordinate.longitude)
             let distance = currentLocation.distance(from: lastLocation)
-            TerritoryLogger.shared.log("记录第 \(count) 个点，距上点 \(String(format: "%.1f", distance))m，精度 \(String(format: "%.1f", location.horizontalAccuracy))m", type: .info)
+            TerritoryLogger.shared.log("记录第 \(count) 个点，距上点 \(String(format: "%.1f", distance))m，过滤后精度 \(String(format: "%.1f", filteredLocation.horizontalAccuracy))m", type: .info)
         } else {
-            TerritoryLogger.shared.log("记录第 \(count) 个点（起点），精度 \(String(format: "%.1f", location.horizontalAccuracy))m", type: .info)
+            TerritoryLogger.shared.log("记录第 \(count) 个点（起点），过滤后精度 \(String(format: "%.1f", filteredLocation.horizontalAccuracy))m", type: .info)
         }
 
         // 检查路径闭合
