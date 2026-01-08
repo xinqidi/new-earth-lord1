@@ -110,10 +110,10 @@ class AuthManager: ObservableObject {
     /// 验证码是否已验证（等待设置密码）
     @Published var otpVerified: Bool = false
 
-    // MARK: - Private Properties
+    // MARK: - Internal Properties
 
     /// Supabase 客户端实例（使用全局实例）
-    private let supabase: SupabaseClient
+    let supabase: SupabaseClient
 
     /// 临时存储的用户邮箱（用于完成注册/重置密码流程）
     private var pendingEmail: String?

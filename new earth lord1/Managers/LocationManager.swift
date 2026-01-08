@@ -37,6 +37,9 @@ class LocationManager: NSObject, ObservableObject {
     /// 路径是否闭合（用于圈地判断）
     @Published var isPathClosed: Bool = false
 
+    /// 上次闭环检测时的点数（用于检测点数变化）
+    private var lastClosureCheckPointCount: Int = 0
+
     /// 速度警告信息
     @Published var speedWarning: String?
 
@@ -51,6 +54,9 @@ class LocationManager: NSObject, ObservableObject {
 
     /// 计算出的领地面积（平方米）
     @Published var calculatedArea: Double = 0
+
+    /// 开始追踪的时间
+    @Published var trackingStartTime: Date?
 
     // MARK: - Private Properties
 
@@ -112,7 +118,7 @@ class LocationManager: NSObject, ObservableObject {
         // 配置定位管理器
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest // 最高精度
-        locationManager.distanceFilter = 10 // 移动10米才更新位置
+        locationManager.distanceFilter = 5 // 移动5米才更新位置（提高采样精度）
 
         // 获取当前授权状态
         authorizationStatus = locationManager.authorizationStatus
@@ -159,11 +165,13 @@ class LocationManager: NSObject, ObservableObject {
 
         isTracking = true
         isPathClosed = false
+        trackingStartTime = Date()
 
         // 重置验证状态
         territoryValidationPassed = false
         territoryValidationError = nil
         calculatedArea = 0
+        lastClosureCheckPointCount = 0
 
         // 记录日志
         TerritoryLogger.shared.log("开始圈地追踪", type: .info)
@@ -173,7 +181,7 @@ class LocationManager: NSObject, ObservableObject {
             startUpdatingLocation()
         }
 
-        // 启动定时器，每2秒采样一次
+        // 启动定时器，每2秒采样一次记录点
         pathUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.recordPathPoint()
         }
@@ -198,6 +206,16 @@ class LocationManager: NSObject, ObservableObject {
         lastSpeedWarningTime = nil
         speedWarningTimer?.invalidate()
         speedWarningTimer = nil
+
+        // ⚠️ 重置所有状态（防止重复上传）
+        pathCoordinates.removeAll()
+        pathUpdateVersion += 1
+        isPathClosed = false
+        territoryValidationPassed = false
+        territoryValidationError = nil
+        calculatedArea = 0
+        trackingStartTime = nil
+        lastClosureCheckPointCount = 0
     }
 
     /// 清除路径
@@ -217,6 +235,7 @@ class LocationManager: NSObject, ObservableObject {
         territoryValidationPassed = false
         territoryValidationError = nil
         calculatedArea = 0
+        lastClosureCheckPointCount = 0
     }
 
     // MARK: - 距离与面积计算
@@ -252,17 +271,25 @@ class LocationManager: NSObject, ObservableObject {
             return 0
         }
 
-        // 使用第一个点作为参考原点，将所有点投影到局部平面坐标系
-        guard let origin = pathCoordinates.first else {
-            return 0
-        }
+        // 使用质心作为参考点（更精确）
+        let centerLat = pathCoordinates.map { $0.latitude }.reduce(0, +) / Double(pathCoordinates.count)
+        let centerLon = pathCoordinates.map { $0.longitude }.reduce(0, +) / Double(pathCoordinates.count)
 
         // 将经纬度坐标转换为以米为单位的平面坐标 (x, y)
         var points: [(x: Double, y: Double)] = []
 
         for coord in pathCoordinates {
-            let x = coordToMeters(lat: origin.latitude, lon1: origin.longitude, lon2: coord.longitude)
-            let y = coordToMeters(lat: origin.latitude, lat1: origin.latitude, lat2: coord.latitude)
+            // 使用更精确的Haversine投影
+            let x = haversineDistance(
+                lat1: centerLat, lon1: centerLon,
+                lat2: centerLat, lon2: coord.longitude
+            ) * (coord.longitude > centerLon ? 1.0 : -1.0)
+
+            let y = haversineDistance(
+                lat1: centerLat, lon1: centerLon,
+                lat2: coord.latitude, lon2: centerLon
+            ) * (coord.latitude > centerLat ? 1.0 : -1.0)
+
             points.append((x: x, y: y))
         }
 
@@ -284,43 +311,34 @@ class LocationManager: NSObject, ObservableObject {
         return area
     }
 
-    /// 将经纬度差值转换为米（用于面积计算）
+    /// 使用 Haversine 公式计算两点间的精确距离
     /// - Parameters:
-    ///   - lat: 参考纬度
-    ///   - lon1: 起始经度（或纬度）
-    ///   - lon2: 结束经度（或纬度）
+    ///   - lat1: 起点纬度
+    ///   - lon1: 起点经度
+    ///   - lat2: 终点纬度
+    ///   - lon2: 终点经度
     /// - Returns: 距离（米）
-    private func coordToMeters(lat: Double, lon1: Double, lon2: Double) -> Double {
-        let earthRadius: Double = 6371000  // ✅ 地球半径（米）
+    private func haversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
+        let earthRadius: Double = 6371000  // 地球半径（米）
 
-        // ✅ 转换为弧度
-        let lat1Rad = lat * .pi / 180
+        // 转换为弧度
+        let lat1Rad = lat1 * .pi / 180
         let lon1Rad = lon1 * .pi / 180
+        let lat2Rad = lat2 * .pi / 180
         let lon2Rad = lon2 * .pi / 180
 
-        // 计算经度差对应的距离（在给定纬度下）
-        let dLon = lon2Rad - lon1Rad
-        let distance = earthRadius * cos(lat1Rad) * dLon
-
-        return distance
-    }
-
-    /// 将纬度差值转换为米（用于面积计算）
-    /// - Parameters:
-    ///   - lat: 参考纬度（未使用，但保持接口一致）
-    ///   - lat1: 起始纬度
-    ///   - lat2: 结束纬度
-    /// - Returns: 距离（米）
-    private func coordToMeters(lat: Double, lat1: Double, lat2: Double) -> Double {
-        let earthRadius: Double = 6371000  // ✅ 地球半径（米）
-
-        // ✅ 转换为弧度
-        let lat1Rad = lat1 * .pi / 180
-        let lat2Rad = lat2 * .pi / 180
-
-        // 计算纬度差对应的距离
+        // 计算差值
         let dLat = lat2Rad - lat1Rad
-        let distance = earthRadius * dLat
+        let dLon = lon2Rad - lon1Rad
+
+        // Haversine 公式
+        let a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(lat1Rad) * cos(lat2Rad) *
+                sin(dLon / 2) * sin(dLon / 2)
+
+        let c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        let distance = earthRadius * c
 
         return distance
     }
@@ -374,6 +392,7 @@ class LocationManager: NSObject, ObservableObject {
         // ✅ 防御性检查：确保有足够的线段
         guard segmentCount >= 2 else { return false }
 
+        // 步骤1：检查路径内部的线段是否相交
         for i in 0..<segmentCount {
             guard i < pathSnapshot.count - 1 else { break }
 
@@ -400,6 +419,30 @@ class LocationManager: NSObject, ObservableObject {
                     TerritoryLogger.shared.log("  发现相交: 线段\(i)-\(i+1) 与 线段\(j)-\(j+1)", type: .warning)
                     return true
                 }
+            }
+        }
+
+        // 步骤2：检查闭环线段（最后一个点回到第一个点）是否与路径相交
+        guard let firstPoint = pathSnapshot.first,
+              let lastPoint = pathSnapshot.last else {
+            return false
+        }
+
+        // 闭环线段：从最后一个点到第一个点
+        let closureP1 = lastPoint
+        let closureP2 = firstPoint
+
+        // 检查闭环线段是否与路径中的其他线段相交
+        // 注意：跳过第一条线段(0-1)和最后一条线段(n-1到n)，因为它们与闭环线段共享端点
+        for i in 1..<(segmentCount - 1) {
+            guard i < pathSnapshot.count - 1 else { break }
+
+            let p3 = pathSnapshot[i]
+            let p4 = pathSnapshot[i + 1]
+
+            if segmentsIntersect(p1: closureP1, p2: closureP2, p3: p3, p4: p4) {
+                TerritoryLogger.shared.log("  发现闭环线段相交: 闭环线段 与 线段\(i)-\(i+1)", type: .warning)
+                return true
             }
         }
 
@@ -463,13 +506,8 @@ class LocationManager: NSObject, ObservableObject {
     /// 检查路径是否闭合
     /// 判断当前位置是否回到起点（≤30米）
     private func checkPathClosure() {
-        // ⚠️ 已闭合则不再检测（避免重复判断）
-        guard !isPathClosed else {
-            return
-        }
-
-        // 检查点数是否足够（至少要有最小点数才判定）
-        guard pathCoordinates.count >= minimumPathPoints else {
+        // ⚠️ 至少需要5个点才开始闭环检测（避免过早触发）
+        guard pathCoordinates.count >= 5 else {
             return
         }
 
@@ -484,15 +522,45 @@ class LocationManager: NSObject, ObservableObject {
         let currentLocation = CLLocation(latitude: currentPoint.latitude, longitude: currentPoint.longitude)
         let distance = currentLocation.distance(from: startLocation)
 
-        print("🔄 [闭环检测] 距离起点 \(String(format: "%.1f", distance))米")
+        print("🔄 [闭环检测] 距离起点 \(String(format: "%.1f", distance))米，当前点数: \(pathCoordinates.count)")
 
-        // 记录日志（点数 ≥10 且未闭环时）
-        TerritoryLogger.shared.log("距起点 \(String(format: "%.1f", distance))m (需≤30m)", type: .info)
+        // 记录日志
+        TerritoryLogger.shared.log("距起点 \(String(format: "%.1f", distance))m (需≤30m), 点数: \(pathCoordinates.count)", type: .info)
+
+        // 如果已经闭合且验证通过，不再重复检测
+        if isPathClosed && territoryValidationPassed {
+            return
+        }
+
+        // 如果已经闭合但验证失败，检查是否可以重新尝试
+        if isPathClosed && !territoryValidationPassed {
+            // 条件1：用户离开起点超过50米，重置闭环状态
+            // 条件2：点数增加了（用户继续走动），允许重新验证
+            if distance > 50 {
+                print("🔄 [闭环检测] 用户已离开起点，重置闭环状态")
+                isPathClosed = false
+                territoryValidationPassed = false
+                territoryValidationError = nil
+                calculatedArea = 0
+                lastClosureCheckPointCount = 0
+            } else if pathCoordinates.count > lastClosureCheckPointCount {
+                // 点数增加了，且仍在起点附近，允许重新验证
+                print("🔄 [闭环检测] 点数增加 (\(lastClosureCheckPointCount) → \(pathCoordinates.count))，允许重新验证")
+                isPathClosed = false
+                territoryValidationPassed = false
+                territoryValidationError = nil
+                calculatedArea = 0
+            } else {
+                // 既没有离开起点，点数也没增加，保持当前状态
+                return
+            }
+        }
 
         // 步骤1：先判定是否闭环
         if distance <= closureDistanceThreshold {
             // ✅ 闭环成功！
             isPathClosed = true
+            lastClosureCheckPointCount = pathCoordinates.count  // 记录当前点数
             print("✅ [闭环检测] 路径已闭合！距离起点 \(String(format: "%.1f", distance))米")
 
             TerritoryLogger.shared.log("━━━━━━━━━━━━━━━━━━━━━━", type: .success)
@@ -624,8 +692,8 @@ class LocationManager: NSObject, ObservableObject {
             return
         }
 
-        // ✅ GPS 精度检查：只接受精度 ≤ 20 米的位置
-        guard location.horizontalAccuracy > 0 && location.horizontalAccuracy <= 20 else {
+        // ✅ GPS 精度检查：只接受精度 ≤ 15 米的位置（提高定位精度要求）
+        guard location.horizontalAccuracy > 0 && location.horizontalAccuracy <= 15 else {
             print("⚠️ [路径追踪] GPS 精度差 (\(String(format: "%.1f", location.horizontalAccuracy))m)，跳过采样")
             TerritoryLogger.shared.log("GPS 精度差 (\(String(format: "%.1f", location.horizontalAccuracy))m)，跳过", type: .warning)
             return
@@ -639,13 +707,22 @@ class LocationManager: NSObject, ObservableObject {
 
         let coordinate = location.coordinate
 
-        // 检查是否与上一个点距离足够远（>10米才记录）
+        // 检查是否与上一个点距离足够远（>5米才记录，提高轨迹精度）
         if let lastCoordinate = pathCoordinates.last {
             let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
             let distance = location.distance(from: lastLocation)
 
-            if distance < 10 {
+            if distance < 5 {
                 print("📏 [路径追踪] 距离上个点仅 \(String(format: "%.1f", distance))米，跳过")
+                return
+            }
+
+            // ✅ GPS 漂移检测：距离过大时判定为GPS跳跃漂移
+            // 最高速度30km/h ≈ 8.3m/s，采样间隔2秒，理论最大距离16.6m
+            // 考虑误差和加速过程，设置阈值为35米
+            if distance > 35 {
+                print("⚠️ [路径追踪] GPS跳跃检测: 距上个点 \(String(format: "%.1f", distance))m (>35m)，疑似漂移，跳过")
+                TerritoryLogger.shared.log("GPS跳跃 \(String(format: "%.1f", distance))m，跳过", type: .warning)
                 return
             }
         }

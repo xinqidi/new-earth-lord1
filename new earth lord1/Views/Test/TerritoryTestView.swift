@@ -33,7 +33,6 @@ struct TerritoryTestView: View {
 
             HStack {
                 Circle()
-                    .fill(locationManager.isTracking ? Color.green : Color.gray)
                     .frame(width: 12, height: 12)
 
                 Text(locationManager.isTracking ? "● 追踪中" : "○ 未追踪")

@@ -33,6 +33,12 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 路径是否已闭合
     var isPathClosed: Bool
 
+    /// 已加载的领地列表
+    var territories: [Territory]
+
+    /// 当前用户 ID（用于区分我的领地和他人领地）
+    var currentUserId: String?
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建 MKMapView
@@ -64,6 +70,9 @@ struct MapViewRepresentable: UIViewRepresentable {
     func updateUIView(_ uiView: MKMapView, context: Context) {
         // 更新追踪路径
         context.coordinator.updateTrackingPath(on: uiView, path: trackingPath, isClosed: isPathClosed)
+
+        // 绘制领地
+        context.coordinator.drawTerritories(on: uiView, territories: territories, currentUserId: currentUserId)
     }
 
     /// 创建 Coordinator（处理地图代理事件）
@@ -164,6 +173,48 @@ struct MapViewRepresentable: UIViewRepresentable {
             print("✅ [地图] 地图加载完成")
         }
 
+        // MARK: - Territory Display
+
+        /// 绘制领地多边形
+        /// - Parameters:
+        ///   - mapView: 地图视图
+        ///   - territories: 领地列表
+        ///   - currentUserId: 当前用户 ID
+        func drawTerritories(on mapView: MKMapView, territories: [Territory], currentUserId: String?) {
+            // 移除旧的领地多边形（保留路径轨迹）
+            let territoryOverlays = mapView.overlays.filter { overlay in
+                if let polygon = overlay as? MKPolygon {
+                    return polygon.title == "mine" || polygon.title == "others"
+                }
+                return false
+            }
+            mapView.removeOverlays(territoryOverlays)
+
+            // 绘制每个领地
+            for territory in territories {
+                var coords = territory.toCoordinates()
+
+                // ⚠️ 中国大陆需要坐标转换 WGS-84 → GCJ-02
+                coords = coords.map { coord in
+                    CoordinateConverter.wgs84ToGcj02(coord)
+                }
+
+                guard coords.count >= 3 else { continue }
+
+                let polygon = MKPolygon(coordinates: coords, count: coords.count)
+
+                // ⚠️ 关键：比较 userId 时必须统一大小写！
+                // 数据库存的是小写 UUID，但 iOS 的 uuidString 返回大写
+                // 如果不转换，会导致自己的领地显示为橙色
+                let isMine = territory.userId.lowercased() == currentUserId?.lowercased()
+                polygon.title = isMine ? "mine" : "others"
+
+                mapView.addOverlay(polygon, level: .aboveRoads)
+            }
+
+            print("🗺️ [领地显示] 绘制了 \(territories.count) 个领地")
+        }
+
         // MARK: - Path Tracking
 
         /// 更新追踪路径
@@ -225,8 +276,24 @@ struct MapViewRepresentable: UIViewRepresentable {
             // 渲染多边形填充
             if let polygon = overlay as? MKPolygon {
                 let renderer = MKPolygonRenderer(polygon: polygon)
-                renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25) // 半透明绿色填充
-                renderer.strokeColor = .clear // 不绘制边框（轨迹线已经绘制）
+
+                // 根据 title 区分领地类型
+                if polygon.title == "mine" {
+                    // 我的领地：绿色
+                    renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25)
+                    renderer.strokeColor = UIColor.systemGreen
+                    renderer.lineWidth = 2.0
+                } else if polygon.title == "others" {
+                    // 他人领地：橙色
+                    renderer.fillColor = UIColor.systemOrange.withAlphaComponent(0.25)
+                    renderer.strokeColor = UIColor.systemOrange
+                    renderer.lineWidth = 2.0
+                } else {
+                    // 当前追踪的多边形（无 title）：绿色，无边框
+                    renderer.fillColor = UIColor.systemGreen.withAlphaComponent(0.25)
+                    renderer.strokeColor = .clear // 不绘制边框（轨迹线已经绘制）
+                }
+
                 return renderer
             }
 
