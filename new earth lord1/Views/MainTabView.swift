@@ -36,6 +36,16 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
+            ResourcesTabView()
+                .tabItem {
+                    Label {
+                        Text(languageManager.localizedString("资源"))
+                    } icon: {
+                        Image(systemName: "cube.box.fill")
+                    }
+                }
+                .tag(2)
+
             ProfileTabView()
                 .tabItem {
                     Label {
@@ -44,7 +54,7 @@ struct MainTabView: View {
                         Image(systemName: "person.fill")
                     }
                 }
-                .tag(2)
+                .tag(3)
 
             MoreTabView()
                 .tabItem {
@@ -54,7 +64,7 @@ struct MainTabView: View {
                         Image(systemName: "ellipsis")
                     }
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(ApocalypseTheme.primary)
         // 强制在语言变化时重新渲染

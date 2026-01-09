@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "" : {
+
+    },
     "(%lld)" : {
 
     },
@@ -21,7 +24,19 @@
         }
       }
     },
+    "#%lld" : {
+
+    },
     "%lld 个点" : {
+
+    },
+    "%lld分钟" : {
+
+    },
+    "%lld种" : {
+
+    },
+    "|" : {
 
     },
     "○ 未追踪" : {
@@ -80,6 +95,9 @@
         }
       }
     },
+    "GPS: %@" : {
+
+    },
     "ID: %@..." : {
       "localizations" : {
         "en" : {
@@ -111,6 +129,9 @@
           }
         }
       }
+    },
+    "x%lld" : {
+
     },
     "两次输入的密码不一致" : {
       "localizations" : {
@@ -162,6 +183,9 @@
         }
       }
     },
+    "交易模式" : {
+
+    },
     "以确认操作" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -178,6 +202,9 @@
           }
         }
       }
+    },
+    "使用" : {
+
     },
     "使用 Apple 登录" : {
       "extractionState" : "stale",
@@ -349,6 +376,12 @@
         }
       }
     },
+    "勇敢的探险者" : {
+
+    },
+    "去探索收集物资吧" : {
+
+    },
     "发送验证码" : {
       "localizations" : {
         "en" : {
@@ -381,6 +414,9 @@
           }
         }
       }
+    },
+    "品质：%@" : {
+
     },
     "圈地功能测试" : {
 
@@ -428,6 +464,12 @@
         }
       }
     },
+    "太棒了！" : {
+
+    },
+    "存储" : {
+
+    },
     "完成" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -457,6 +499,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成注册"
+          }
+        }
+      }
+    },
+    "定位" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位"
           }
         }
       }
@@ -495,6 +554,27 @@
       }
     },
     "导出日志" : {
+
+    },
+    "尝试其他搜索关键词或分类" : {
+
+    },
+    "尝试搜索或切换其他分类" : {
+
+    },
+    "已发现" : {
+
+    },
+    "已搜刮" : {
+
+    },
+    "已搜空" : {
+
+    },
+    "已添加到背包" : {
+
+    },
+    "已被搜空" : {
 
     },
     "帮助" : {
@@ -638,6 +718,40 @@
         }
       }
     },
+    "探索" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探索"
+          }
+        }
+      }
+    },
+    "探索中..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exploring..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探索中..."
+          }
+        }
+      }
+    },
     "探索和圈占领地" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -655,6 +769,21 @@
         }
       }
     },
+    "探索失败" : {
+
+    },
+    "探索完成" : {
+
+    },
+    "探索完成！" : {
+
+    },
+    "探索时长" : {
+
+    },
+    "探索统计" : {
+
+    },
     "探索距离" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -671,6 +800,21 @@
           }
         }
       }
+    },
+    "搜寻此POI" : {
+
+    },
+    "搜索中..." : {
+
+    },
+    "搜索物品..." : {
+
+    },
+    "搜索附近POI" : {
+
+    },
+    "敬请期待..." : {
+
     },
     "新密码" : {
       "localizations" : {
@@ -711,7 +855,22 @@
         }
       }
     },
+    "有物资" : {
+
+    },
+    "未发现" : {
+
+    },
+    "本次:" : {
+
+    },
     "查看圈地过程的调试日志" : {
+
+    },
+    "标记已发现" : {
+
+    },
+    "标记无物资" : {
 
     },
     "正在初始化..." : {
@@ -781,6 +940,12 @@
           }
         }
       }
+    },
+    "没有找到相关物品" : {
+
+    },
+    "没有找到该类型的地点" : {
+
     },
     "注册" : {
       "extractionState" : "stale",
@@ -871,6 +1036,9 @@
         }
       }
     },
+    "点击搜索按钮发现周围的废墟" : {
+
+    },
     "登录" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -958,7 +1126,32 @@
     "纬度: %@" : {
 
     },
+    "累计:" : {
+
+    },
     "经度: %@" : {
+
+    },
+    "背包" : {
+
+    },
+    "背包容量：%lld / %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "背包容量：%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "背包快满了！" : {
+
+    },
+    "背包空空如也" : {
+
+    },
+    "获得物品" : {
 
     },
     "设置" : {
@@ -1124,6 +1317,25 @@
           }
         }
       }
+    },
+    "资源" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resources"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资源"
+          }
+        }
+      }
+    },
+    "资源分段" : {
+
     },
     "资源点" : {
       "extractionState" : "stale",
@@ -1391,6 +1603,18 @@
           }
         }
       }
+    },
+    "重试" : {
+
+    },
+    "附近发现 %lld 个地点" : {
+
+    },
+    "附近探索" : {
+
+    },
+    "附近暂无兴趣点" : {
+
     },
     "领地" : {
       "extractionState" : "stale",

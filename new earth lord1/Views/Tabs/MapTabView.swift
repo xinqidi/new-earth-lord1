@@ -65,6 +65,14 @@ struct MapTabView: View {
     /// 碰撞警告级别
     @State private var collisionWarningLevel: WarningLevel = .safe
 
+    // MARK: - 探索功能状态
+
+    /// 是否正在探索
+    @State private var isExploring = false
+
+    /// 是否显示探索结果
+    @State private var showExplorationResult = false
+
     // MARK: - Body
 
     var body: some View {
@@ -226,7 +234,7 @@ struct MapTabView: View {
                 collisionWarningBanner(message: warning, level: collisionWarningLevel)
             }
 
-            // 右下角按钮组
+            // 右上角辅助按钮（确认登记/上传中）
             VStack {
                 Spacer()
 
@@ -234,28 +242,6 @@ struct MapTabView: View {
                     Spacer()
 
                     VStack(spacing: 16) {
-                        // 圈地按钮
-                        Button(action: {
-                            togglePathTracking()
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: locationManager.isTracking ? "stop.fill" : "flag.fill")
-                                    .font(.system(size: 16))
-                                Text(locationManager.isTracking ? "停止圈地".localized : "开始圈地".localized)
-                                    .font(.system(size: 14, weight: .semibold))
-                                if locationManager.isTracking && !locationManager.pathCoordinates.isEmpty {
-                                    Text("(\(locationManager.pathCoordinates.count))")
-                                        .font(.system(size: 12))
-                                }
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(locationManager.isTracking ? Color.red : ApocalypseTheme.primary)
-                            .clipShape(Capsule())
-                            .shadow(color: .black.opacity(0.3), radius: 10)
-                        }
-
                         // 确认登记按钮（仅在验证通过时显示）
                         if locationManager.territoryValidationPassed && !isUploading {
                             Button(action: {
@@ -293,22 +279,86 @@ struct MapTabView: View {
                             .clipShape(Capsule())
                             .shadow(color: .black.opacity(0.3), radius: 10)
                         }
-
-                        // 定位按钮
-                        Button(action: {
-                            requestLocationAndCenter()
-                        }) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(ApocalypseTheme.primary)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.3), radius: 10)
-                        }
                     }
                     .padding()
+                    .padding(.bottom, 100) // 给底部按钮留出空间
                 }
+            }
+
+            // 底部三个按钮（水平排列）
+            VStack {
+                Spacer()
+
+                HStack(spacing: 12) {
+                    // 左侧：开始圈地按钮
+                    Button(action: {
+                        togglePathTracking()
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: locationManager.isTracking ? "stop.fill" : "flag.fill")
+                                .font(.system(size: 22))
+                            Text(locationManager.isTracking ? "停止圈地".localized : "开始圈地".localized)
+                                .font(.system(size: 12, weight: .semibold))
+                            if locationManager.isTracking && !locationManager.pathCoordinates.isEmpty {
+                                Text("(\(locationManager.pathCoordinates.count))")
+                                    .font(.system(size: 10))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(locationManager.isTracking ? Color.red : ApocalypseTheme.primary)
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.3), radius: 10)
+                    }
+                    .disabled(isExploring)
+
+                    // 中间：定位按钮
+                    Button(action: {
+                        requestLocationAndCenter()
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 22))
+                            Text("定位".localized)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(ApocalypseTheme.primary)
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.3), radius: 10)
+                    }
+                    .disabled(isExploring)
+
+                    // 右侧：探索按钮
+                    Button(action: {
+                        startExploration()
+                    }) {
+                        VStack(spacing: 4) {
+                            if isExploring {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "binoculars.fill")
+                                    .font(.system(size: 22))
+                            }
+                            Text(isExploring ? "探索中...".localized : "探索".localized)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(isExploring ? ApocalypseTheme.textMuted : ApocalypseTheme.primary)
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.3), radius: 10)
+                    }
+                    .disabled(isExploring)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
             }
 
             // 左上角坐标显示（仅在有位置时显示）
@@ -370,6 +420,9 @@ struct MapTabView: View {
             }
         }
         .id(languageManager.currentLanguage) // 语言切换时重新渲染
+        .sheet(isPresented: $showExplorationResult) {
+            ExplorationResultView(stats: MockExplorationData.mockExplorationStats)
+        }
     }
 
     // MARK: - Computed Properties
@@ -498,6 +551,23 @@ struct MapTabView: View {
                 print("⚠️ [地图页] 未授权定位，无法开始圈地")
                 locationManager.requestPermission()
             }
+        }
+    }
+
+    /// 开始探索
+    private func startExploration() {
+        print("🔍 [地图页] 开始探索")
+
+        // 设置为探索中状态
+        isExploring = true
+
+        // 模拟1.5秒的搜索过程
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // 探索完成
+            isExploring = false
+            // 显示探索结果
+            showExplorationResult = true
+            print("✅ [地图页] 探索完成，显示结果")
         }
     }
 
