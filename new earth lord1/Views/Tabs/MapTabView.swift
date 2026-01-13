@@ -67,11 +67,17 @@ struct MapTabView: View {
 
     // MARK: - 探索功能状态
 
-    /// 是否正在探索
-    @State private var isExploring = false
+    /// 探索管理器
+    @StateObject private var explorationManager = ExplorationManager()
 
     /// 是否显示探索结果
     @State private var showExplorationResult = false
+
+    /// 探索错误信息
+    @State private var explorationError: String?
+
+    /// 是否显示结束探索确认
+    @State private var showStopExplorationConfirm = false
 
     // MARK: - Body
 
@@ -88,7 +94,8 @@ struct MapTabView: View {
                 isTracking: locationManager.isTracking,
                 isPathClosed: locationManager.isPathClosed,
                 territories: territories,
-                currentUserId: authManager.currentUser?.id.uuidString
+                currentUserId: authManager.currentUser?.id.uuidString,
+                nearbyPOIs: explorationManager.nearbyPOIs
             )
             .edgesIgnoringSafeArea(.top) // 只忽略顶部安全区域，保留底部给标签栏
 
@@ -234,6 +241,60 @@ struct MapTabView: View {
                 collisionWarningBanner(message: warning, level: collisionWarningLevel)
             }
 
+            // 探索状态横幅
+            if explorationManager.isExploring {
+                explorationStatusBanner
+            }
+
+            // 探索超速警告横幅
+            if let speedWarning = explorationManager.speedWarning {
+                explorationSpeedWarningBanner(message: speedWarning, countdown: explorationManager.overspeedCountdown)
+            }
+
+            // POI接近弹窗
+            if explorationManager.showPOIPopup, let poi = explorationManager.currentPOI {
+                Color.black.opacity(0.4)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        explorationManager.dismissPOIPopup()
+                    }
+
+                VStack {
+                    Spacer()
+                    POIProximityPopup(
+                        poi: poi,
+                        onScavenge: {
+                            Task {
+                                await explorationManager.confirmScavenge()
+                            }
+                        },
+                        onDismiss: {
+                            explorationManager.dismissPOIPopup()
+                        }
+                    )
+                    Spacer()
+                }
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: explorationManager.showPOIPopup)
+                .zIndex(1100)
+            }
+
+            // 搜刮结果视图
+            if explorationManager.showScavengeResult, let result = explorationManager.scavengeResult {
+                Color.black.opacity(0.5)
+                    .edgesIgnoringSafeArea(.all)
+
+                ScavengeResultView(
+                    result: result,
+                    onConfirm: {
+                        explorationManager.dismissScavengeResult()
+                    }
+                )
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: explorationManager.showScavengeResult)
+                .zIndex(1101)
+            }
+
             // 右上角辅助按钮（确认登记/上传中）
             VStack {
                 Spacer()
@@ -311,7 +372,7 @@ struct MapTabView: View {
                         .cornerRadius(12)
                         .shadow(color: .black.opacity(0.3), radius: 10)
                     }
-                    .disabled(isExploring)
+                    .disabled(explorationManager.isExploring)
 
                     // 中间：定位按钮
                     Button(action: {
@@ -330,32 +391,37 @@ struct MapTabView: View {
                         .cornerRadius(12)
                         .shadow(color: .black.opacity(0.3), radius: 10)
                     }
-                    .disabled(isExploring)
+                    .disabled(explorationManager.isExploring)
 
                     // 右侧：探索按钮
                     Button(action: {
-                        startExploration()
+                        if explorationManager.isExploring {
+                            // 结束探索 - 显示确认
+                            showStopExplorationConfirm = true
+                        } else {
+                            // 开始探索
+                            startExploration()
+                        }
                     }) {
                         VStack(spacing: 4) {
-                            if isExploring {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
+                            if explorationManager.isExploring {
+                                Image(systemName: "stop.fill")
+                                    .font(.system(size: 22))
                             } else {
                                 Image(systemName: "binoculars.fill")
                                     .font(.system(size: 22))
                             }
-                            Text(isExploring ? "探索中...".localized : "探索".localized)
+                            Text(explorationManager.isExploring ? "结束探索".localized : "探索".localized)
                                 .font(.system(size: 12, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(isExploring ? ApocalypseTheme.textMuted : ApocalypseTheme.primary)
+                        .background(explorationManager.isExploring ? Color.orange : ApocalypseTheme.primary)
                         .cornerRadius(12)
                         .shadow(color: .black.opacity(0.3), radius: 10)
                     }
-                    .disabled(isExploring)
+                    .disabled(locationManager.isTracking) // 圈地时不能探索
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
@@ -397,6 +463,10 @@ struct MapTabView: View {
             if territoryManager == nil {
                 territoryManager = TerritoryManager(supabase: authManager.supabase)
             }
+            // 初始化 ExplorationManager
+            if let userId = authManager.currentUser?.id {
+                explorationManager.configure(supabase: authManager.supabase, userId: userId, locationManager: locationManager)
+            }
             // 加载领地
             Task {
                 await loadTerritories()
@@ -421,7 +491,32 @@ struct MapTabView: View {
         }
         .id(languageManager.currentLanguage) // 语言切换时重新渲染
         .sheet(isPresented: $showExplorationResult) {
-            ExplorationResultView(stats: MockExplorationData.mockExplorationStats)
+            if let result = explorationManager.explorationResult {
+                ExplorationResultView(result: result)
+            }
+        }
+        .alert("结束探索", isPresented: $showStopExplorationConfirm) {
+            Button("取消", role: .cancel) { }
+            Button("确认结束", role: .destructive) {
+                Task {
+                    await explorationManager.stopExploration()
+                }
+            }
+        } message: {
+            if explorationManager.currentDistance < 200 {
+                Text("当前行走距离 \(Int(explorationManager.currentDistance)) 米，不足 200 米将无法获得奖励。确定要结束探索吗？")
+            } else {
+                Text("当前已行走 \(Int(explorationManager.currentDistance)) 米，等级：\(explorationManager.currentTier.displayName)。确定要结束探索吗？")
+            }
+        }
+        .onReceive(explorationManager.$showResult) { showResult in
+            if showResult {
+                showExplorationResult = true
+                // 重置showResult状态
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    explorationManager.showResult = false
+                }
+            }
         }
     }
 
@@ -496,6 +591,131 @@ struct MapTabView: View {
         .zIndex(997) // 低于上传横幅
     }
 
+    // MARK: - 探索状态横幅
+
+    /// 探索状态横幅视图
+    private var explorationStatusBanner: some View {
+        VStack {
+            VStack(spacing: 8) {
+                // 第一行：探索中 | 距离 | 时长
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "binoculars.fill")
+                            .font(.system(size: 14))
+                        Text("探索中")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+
+                    Text("|")
+                        .foregroundColor(.white.opacity(0.5))
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.walk")
+                            .font(.system(size: 14))
+                        Text(explorationManager.formatDistance(explorationManager.currentDistance))
+                            .font(.system(size: 14, weight: .medium))
+                    }
+
+                    Text("|")
+                        .foregroundColor(.white.opacity(0.5))
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 14))
+                        Text(explorationManager.formatDuration(explorationManager.currentDuration))
+                            .font(.system(size: 14, weight: .medium))
+                    }
+
+                    Spacer()
+                }
+
+                // 第二行：距下一等级的距离 + 结束按钮
+                HStack {
+                    // 等级进度提示
+                    if let nextTier = explorationManager.currentTier.nextTier {
+                        HStack(spacing: 4) {
+                            Image(systemName: "target")
+                                .font(.system(size: 12))
+                            Text("距\(nextTier.displayName)还差 \(Int(explorationManager.distanceToNextTier))m")
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(.white.opacity(0.8))
+                    } else {
+                        // 已达最高等级
+                        HStack(spacing: 4) {
+                            Image(systemName: "diamond.fill")
+                                .font(.system(size: 12))
+                            Text("已达最高等级：\(explorationManager.currentTier.displayName)")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(.yellow)
+                    }
+
+                    Spacer()
+
+                    // 结束探索按钮
+                    Button(action: {
+                        showStopExplorationConfirm = true
+                    }) {
+                        Text("结束探索")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.orange)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(ApocalypseTheme.primary.opacity(0.95))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.3), radius: 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 60)
+
+            Spacer()
+        }
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: explorationManager.isExploring)
+        .zIndex(996)
+    }
+
+    /// 探索超速警告横幅
+    private func explorationSpeedWarningBanner(message: String, countdown: Int?) -> some View {
+        VStack {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 20))
+
+                if let countdown = countdown {
+                    Text("速度过快！请在 \(countdown) 秒内降速，否则探索失败")
+                        .font(.system(size: 14, weight: .bold))
+                } else {
+                    Text(message)
+                        .font(.system(size: 14, weight: .bold))
+                }
+
+                Spacer()
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(Color.red.opacity(0.95))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.4), radius: 10)
+            .padding(.horizontal, 16)
+            .padding(.top, explorationManager.isExploring ? 140 : 60) // 如果有探索横幅，往下移
+
+            Spacer()
+        }
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.3), value: explorationManager.speedWarning)
+        .zIndex(995)
+    }
+
     // MARK: - Private Methods
 
     /// 请求定位权限
@@ -556,18 +776,32 @@ struct MapTabView: View {
 
     /// 开始探索
     private func startExploration() {
-        print("🔍 [地图页] 开始探索")
+        // 检查用户是否已登录
+        guard let userId = authManager.currentUser?.id else {
+            explorationError = "请先登录"
+            print("❌ [探索] 未登录，无法开始探索")
+            return
+        }
 
-        // 设置为探索中状态
-        isExploring = true
+        // 检查定位权限
+        guard locationManager.isAuthorized else {
+            explorationError = "请先授权定位权限"
+            print("❌ [探索] 未授权定位，无法开始探索")
+            return
+        }
 
-        // 模拟1.5秒的搜索过程
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // 探索完成
-            isExploring = false
-            // 显示探索结果
-            showExplorationResult = true
-            print("✅ [地图页] 探索完成，显示结果")
+        // 配置并开始探索
+        explorationManager.configure(supabase: authManager.supabase, userId: userId, locationManager: locationManager)
+
+        Task {
+            do {
+                try await explorationManager.startExploration()
+            } catch {
+                print("❌ [探索] 开始探索失败: \(error.localizedDescription)")
+                await MainActor.run {
+                    explorationError = "开始探索失败: \(error.localizedDescription)"
+                }
+            }
         }
     }
 

@@ -19,6 +19,9 @@ class LocationManager: NSObject, ObservableObject {
     /// 用户当前位置坐标
     @Published var userLocation: CLLocationCoordinate2D?
 
+    /// 完整的位置信息（包含精度、速度等）- 用于探索功能
+    @Published var currentFullLocation: CLLocation?
+
     /// 定位授权状态
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
@@ -156,6 +159,20 @@ class LocationManager: NSObject, ObservableObject {
     func stopUpdatingLocation() {
         print("🛑 [定位管理] 停止更新位置")
         locationManager.stopUpdatingLocation()
+    }
+
+    // MARK: - Geofence Monitoring
+
+    /// 开始监控地理围栏
+    func startMonitoringGeofence(_ region: CLCircularRegion) {
+        locationManager.startMonitoring(for: region)
+        print("📍 [围栏] 开始监控围栏: \(region.identifier)")
+    }
+
+    /// 停止监控地理围栏
+    func stopMonitoringGeofence(_ region: CLCircularRegion) {
+        locationManager.stopMonitoring(for: region)
+        print("🛑 [围栏] 停止监控围栏: \(region.identifier)")
     }
 
     // MARK: - Path Tracking Methods
@@ -801,6 +818,7 @@ extension LocationManager: CLLocationManagerDelegate {
         // 更新用户位置
         DispatchQueue.main.async {
             self.userLocation = location.coordinate
+            self.currentFullLocation = location  // 发布完整位置供探索功能使用
             self.locationError = nil
         }
 
@@ -814,5 +832,26 @@ extension LocationManager: CLLocationManagerDelegate {
         DispatchQueue.main.async {
             self.locationError = "定位失败: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: - Geofence Delegate
+
+    /// 进入地理围栏时调用
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        guard let circularRegion = region as? CLCircularRegion else { return }
+
+        print("🎯 [围栏] 进入围栏: \(circularRegion.identifier)")
+
+        // 发送通知，让ExplorationManager处理
+        NotificationCenter.default.post(
+            name: .didEnterPOIRegion,
+            object: nil,
+            userInfo: ["regionId": circularRegion.identifier]
+        )
+    }
+
+    /// 围栏监控失败时调用
+    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+        print("❌ [围栏] 监控失败: \(region?.identifier ?? "unknown") - \(error.localizedDescription)")
     }
 }

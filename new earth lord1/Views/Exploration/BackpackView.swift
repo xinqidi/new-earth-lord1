@@ -10,40 +10,37 @@ import SwiftUI
 
 struct BackpackView: View {
 
+    // MARK: - Environment Objects
+
+    @EnvironmentObject private var authManager: AuthManager
+
     // MARK: - State Properties
+
+    /// 背包管理器
+    @StateObject private var inventoryManager = InventoryManager()
 
     /// 搜索文本
     @State private var searchText = ""
 
     /// 当前选中的分类（nil表示"全部"）
-    @State private var selectedCategory: ItemCategory? = nil
-
-    /// 所有背包物品
-    @State private var backpackItems: [BackpackItem] = MockExplorationData.mockBackpackItems
+    @State private var selectedCategory: String? = nil
 
     /// 列表加载完成标志
     @State private var itemsLoaded = false
 
-    /// 背包最大容量（个数）
-    private let maxCapacity = 100
-
     // MARK: - Computed Properties
 
-    /// 当前背包物品总数
-    private var currentCapacity: Int {
-        return backpackItems.reduce(0) { $0 + $1.quantity }
-    }
-
-    /// 容量使用百分比
-    private var capacityPercentage: Double {
-        return Double(currentCapacity) / Double(maxCapacity)
+    /// 筛选后的物品列表
+    private var filteredItems: [InventoryDisplayItem] {
+        return inventoryManager.filter(category: selectedCategory, searchText: searchText)
     }
 
     /// 容量进度条颜色
     private var capacityColor: Color {
-        if capacityPercentage < 0.7 {
+        let percentage = inventoryManager.capacityPercentage
+        if percentage < 0.7 {
             return ApocalypseTheme.success  // 绿色
-        } else if capacityPercentage < 0.9 {
+        } else if percentage < 0.9 {
             return ApocalypseTheme.warning  // 黄色
         } else {
             return ApocalypseTheme.danger   // 红色
@@ -52,34 +49,7 @@ struct BackpackView: View {
 
     /// 是否显示容量警告
     private var showCapacityWarning: Bool {
-        return capacityPercentage > 0.9
-    }
-
-    /// 筛选后的物品列表
-    private var filteredItems: [BackpackItem] {
-        var items = backpackItems
-
-        // 按分类筛选
-        if let category = selectedCategory {
-            items = items.filter { item in
-                if let definition = MockExplorationData.getItemDefinition(for: item.itemId) {
-                    return definition.category == category
-                }
-                return false
-            }
-        }
-
-        // 按搜索文本筛选
-        if !searchText.isEmpty {
-            items = items.filter { item in
-                if let definition = MockExplorationData.getItemDefinition(for: item.itemId) {
-                    return definition.name.localizedCaseInsensitiveContains(searchText)
-                }
-                return false
-            }
-        }
-
-        return items
+        return inventoryManager.capacityPercentage > 0.9
     }
 
     // MARK: - Body
@@ -106,11 +76,78 @@ struct BackpackView: View {
                     .padding(.vertical, 8)
 
                 // 物品列表
-                itemList
+                if inventoryManager.isLoading {
+                    loadingView
+                } else if let error = inventoryManager.errorMessage {
+                    errorView(message: error)
+                } else {
+                    itemList
+                }
             }
         }
         .navigationTitle("背包")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // 配置并加载背包
+            if let userId = authManager.currentUser?.id {
+                inventoryManager.configure(supabase: authManager.supabase, userId: userId)
+                Task {
+                    await inventoryManager.loadInventory()
+                    await MainActor.run {
+                        itemsLoaded = true
+                    }
+                }
+            }
+        }
+        .refreshable {
+            await inventoryManager.loadInventory()
+        }
+    }
+
+    // MARK: - 加载视图
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: ApocalypseTheme.primary))
+                .scaleEffect(1.5)
+            Text("加载背包中...")
+                .font(.subheadline)
+                .foregroundColor(ApocalypseTheme.textSecondary)
+            Spacer()
+        }
+    }
+
+    // MARK: - 错误视图
+
+    private func errorView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(ApocalypseTheme.warning)
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(ApocalypseTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Button(action: {
+                Task {
+                    await inventoryManager.loadInventory()
+                }
+            }) {
+                Text("重试")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(ApocalypseTheme.primary)
+                    .cornerRadius(10)
+            }
+            Spacer()
+        }
     }
 
     // MARK: - 容量状态卡
@@ -123,14 +160,14 @@ struct BackpackView: View {
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.primary)
 
-                Text("背包容量：\(currentCapacity) / \(maxCapacity)")
+                Text("背包容量：\(inventoryManager.totalItemCount) / \(inventoryManager.maxCapacity)")
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
                 Spacer()
 
                 // 百分比
-                Text(String(format: "%.0f%%", capacityPercentage * 100))
+                Text(String(format: "%.0f%%", inventoryManager.capacityPercentage * 100))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(capacityColor)
@@ -148,9 +185,9 @@ struct BackpackView: View {
                     // 进度
                     Rectangle()
                         .fill(capacityColor)
-                        .frame(width: geometry.size.width * capacityPercentage, height: 8)
+                        .frame(width: geometry.size.width * inventoryManager.capacityPercentage, height: 8)
                         .cornerRadius(4)
-                        .animation(.easeInOut(duration: 0.3), value: capacityPercentage)
+                        .animation(.easeInOut(duration: 0.3), value: inventoryManager.capacityPercentage)
                         .animation(.easeInOut(duration: 0.3), value: capacityColor)
                 }
             }
@@ -213,18 +250,18 @@ struct BackpackView: View {
                 categoryButton(title: "全部", icon: "square.grid.2x2.fill", category: nil)
 
                 // 各分类按钮
-                categoryButton(title: "食物", icon: "fork.knife", category: .food)
-                categoryButton(title: "水", icon: "drop.fill", category: .water)
-                categoryButton(title: "材料", icon: "hammer.fill", category: .material)
-                categoryButton(title: "工具", icon: "wrench.fill", category: .tool)
-                categoryButton(title: "医疗", icon: "cross.fill", category: .medical)
+                categoryButton(title: "食物", icon: "fork.knife", category: "food")
+                categoryButton(title: "水", icon: "drop.fill", category: "water")
+                categoryButton(title: "材料", icon: "hammer.fill", category: "material")
+                categoryButton(title: "工具", icon: "wrench.fill", category: "tool")
+                categoryButton(title: "医疗", icon: "cross.fill", category: "medical")
             }
             .padding(.horizontal)
         }
     }
 
     /// 分类按钮
-    private func categoryButton(title: String, icon: String, category: ItemCategory?) -> some View {
+    private func categoryButton(title: String, icon: String, category: String?) -> some View {
         Button(action: {
             // 先隐藏列表，再切换分类，最后重新显示
             itemsLoaded = false
@@ -270,7 +307,7 @@ struct BackpackView: View {
                     emptyState
                 } else {
                     ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
-                        ItemCardView(item: item)
+                        BackpackItemCardView(item: item, inventoryManager: inventoryManager)
                             .opacity(itemsLoaded ? 1 : 0)
                             .offset(y: itemsLoaded ? 0 : 20)
                             .animation(
@@ -284,28 +321,23 @@ struct BackpackView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
-        .onAppear {
-            if !itemsLoaded {
-                itemsLoaded = true
-            }
-        }
     }
 
     /// 空状态视图
     private var emptyState: some View {
         VStack(spacing: 16) {
             // 图标
-            Image(systemName: backpackItems.isEmpty ? "backpack" : "magnifyingglass")
+            Image(systemName: inventoryManager.items.isEmpty ? "backpack" : "magnifyingglass")
                 .font(.system(size: 60))
                 .foregroundColor(ApocalypseTheme.textMuted)
 
             // 主标题
-            Text(backpackItems.isEmpty ? "背包空空如也" : "没有找到相关物品")
+            Text(inventoryManager.items.isEmpty ? "背包空空如也" : "没有找到相关物品")
                 .font(.headline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
             // 副标题
-            Text(backpackItems.isEmpty ? "去探索收集物资吧" : "尝试其他搜索关键词或分类")
+            Text(inventoryManager.items.isEmpty ? "去探索收集物资吧" : "尝试其他搜索关键词或分类")
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textMuted)
         }
@@ -316,14 +348,24 @@ struct BackpackView: View {
 
 // MARK: - Item Card View
 
-/// 物品卡片视图
-struct ItemCardView: View {
-    let item: BackpackItem
+/// 背包物品卡片视图
+struct BackpackItemCardView: View {
+    let item: InventoryDisplayItem
+    @ObservedObject var inventoryManager: InventoryManager
 
-    /// 物品定义
-    private var itemDefinition: ItemDefinition? {
-        MockExplorationData.getItemDefinition(for: item.itemId)
-    }
+    // MARK: - State
+
+    /// 显示使用确认弹窗
+    @State private var showUseConfirmation = false
+
+    /// 显示丢弃弹窗
+    @State private var showDiscardSheet = false
+
+    /// 丢弃数量
+    @State private var discardQuantity = 1
+
+    /// 操作中状态
+    @State private var isProcessing = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -334,13 +376,11 @@ struct ItemCardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 // 物品名称 + 稀有度标签
                 HStack(spacing: 8) {
-                    Text(itemDefinition?.name ?? "未知物品")
+                    Text(item.name)
                         .font(.headline)
                         .foregroundColor(ApocalypseTheme.textPrimary)
 
-                    if let rarity = itemDefinition?.rarity {
-                        rarityBadge(rarity)
-                    }
+                    rarityBadge
                 }
 
                 // 数量
@@ -353,22 +393,20 @@ struct ItemCardView: View {
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
                 // 重量
-                if let definition = itemDefinition {
-                    HStack(spacing: 4) {
-                        Image(systemName: "scalemass.fill")
-                            .font(.caption2)
-                        Text(String(format: "%.1fkg", definition.weight * Double(item.quantity)))
-                            .font(.caption)
-                    }
-                    .foregroundColor(ApocalypseTheme.textSecondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "scalemass.fill")
+                        .font(.caption2)
+                    Text(String(format: "%.1fkg", item.weight * Double(item.quantity)))
+                        .font(.caption)
                 }
+                .foregroundColor(ApocalypseTheme.textSecondary)
 
                 // 品质（如果有）
                 if let quality = item.quality {
                     HStack(spacing: 4) {
                         Image(systemName: "star.fill")
                             .font(.caption2)
-                        Text("品质：\(quality.rawValue)")
+                        Text("品质：\(quality)")
                             .font(.caption)
                     }
                     .foregroundColor(qualityColor(quality))
@@ -381,7 +419,7 @@ struct ItemCardView: View {
             VStack(spacing: 8) {
                 // 使用按钮
                 Button(action: {
-                    handleUseItem()
+                    showUseConfirmation = true
                 }) {
                     Text("使用")
                         .font(.caption)
@@ -392,12 +430,14 @@ struct ItemCardView: View {
                         .background(ApocalypseTheme.primary)
                         .cornerRadius(8)
                 }
+                .disabled(isProcessing)
 
-                // 存储按钮
+                // 丢弃按钮
                 Button(action: {
-                    handleStoreItem()
+                    discardQuantity = 1
+                    showDiscardSheet = true
                 }) {
-                    Text("存储")
+                    Text("丢弃")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(ApocalypseTheme.textSecondary)
@@ -406,12 +446,37 @@ struct ItemCardView: View {
                         .background(ApocalypseTheme.cardBackground)
                         .cornerRadius(8)
                 }
+                .disabled(isProcessing)
             }
         }
         .padding()
         .background(ApocalypseTheme.cardBackground)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 5)
+        .opacity(isProcessing ? 0.6 : 1.0)
+        // 使用确认弹窗
+        .alert("使用物品", isPresented: $showUseConfirmation) {
+            Button("取消", role: .cancel) { }
+            Button("确认使用") {
+                handleUseItem()
+            }
+        } message: {
+            Text("确定要使用 \(item.name) 吗？")
+        }
+        // 丢弃弹窗（带数量选择）
+        .sheet(isPresented: $showDiscardSheet) {
+            DiscardItemSheet(
+                item: item,
+                quantity: $discardQuantity,
+                onConfirm: {
+                    handleDiscardItem(quantity: discardQuantity)
+                },
+                onCancel: {
+                    showDiscardSheet = false
+                }
+            )
+            .presentationDetents([.height(320)])
+        }
     }
 
     // MARK: - 物品图标
@@ -422,7 +487,7 @@ struct ItemCardView: View {
                 .fill(categoryColor.opacity(0.2))
                 .frame(width: 50, height: 50)
 
-            Image(systemName: categoryIconName)
+            Image(systemName: item.icon)
                 .font(.system(size: 22))
                 .foregroundColor(categoryColor)
         }
@@ -430,78 +495,62 @@ struct ItemCardView: View {
 
     /// 分类对应的颜色
     private var categoryColor: Color {
-        guard let definition = itemDefinition else { return .gray }
-
-        switch definition.category {
-        case .water:
+        switch item.category {
+        case "water":
             return .blue
-        case .food:
+        case "food":
             return .orange
-        case .medical:
+        case "medical":
             return .red
-        case .material:
+        case "material":
             return .brown
-        case .tool:
+        case "tool":
             return .cyan
-        }
-    }
-
-    /// 分类对应的图标
-    private var categoryIconName: String {
-        guard let definition = itemDefinition else { return "questionmark" }
-
-        switch definition.category {
-        case .water:
-            return "drop.fill"
-        case .food:
-            return "fork.knife"
-        case .medical:
-            return "cross.fill"
-        case .material:
-            return "hammer.fill"
-        case .tool:
-            return "wrench.fill"
+        default:
+            return .gray
         }
     }
 
     // MARK: - 稀有度标签
 
-    private func rarityBadge(_ rarity: ItemRarity) -> some View {
-        Text(rarity.rawValue)
+    private var rarityBadge: some View {
+        Text(item.rarityDisplayName)
             .font(.caption2)
             .fontWeight(.semibold)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(rarityColor(rarity).opacity(0.2))
-            .foregroundColor(rarityColor(rarity))
+            .background(rarityColor.opacity(0.2))
+            .foregroundColor(rarityColor)
             .cornerRadius(6)
     }
 
     /// 稀有度对应的颜色
-    private func rarityColor(_ rarity: ItemRarity) -> Color {
-        switch rarity {
-        case .common:
-            return .gray        // 普通：灰色
-        case .uncommon:
-            return .green       // 罕见：绿色
-        case .rare:
-            return .blue        // 稀有：蓝色
-        case .epic:
-            return .purple      // 史诗：紫色
+    private var rarityColor: Color {
+        switch item.rarity {
+        case "common":
+            return .gray
+        case "rare":
+            return .blue
+        case "epic":
+            return .purple
+        default:
+            return .gray
         }
     }
 
     /// 品质对应的颜色
-    private func qualityColor(_ quality: ItemQuality) -> Color {
+    private func qualityColor(_ quality: String) -> Color {
         switch quality {
-        case .poor:
+        case "poor":
             return .red
-        case .normal:
+        case "normal":
             return ApocalypseTheme.textSecondary
-        case .good:
+        case "good":
             return .green
-        case .excellent:
+        case "excellent":
             return .cyan
+        default:
+            return ApocalypseTheme.textSecondary
         }
     }
 
@@ -509,14 +558,187 @@ struct ItemCardView: View {
 
     /// 使用物品
     private func handleUseItem() {
-        print("🎒 [背包] 使用物品: \(itemDefinition?.name ?? "未知")")
-        // TODO: 实现使用物品逻辑
+        print("🎒 [背包] 使用物品: \(item.name)")
+        isProcessing = true
+        Task {
+            await inventoryManager.useItem(itemId: item.itemId)
+            await MainActor.run {
+                isProcessing = false
+            }
+        }
     }
 
-    /// 存储物品
-    private func handleStoreItem() {
-        print("🎒 [背包] 存储物品: \(itemDefinition?.name ?? "未知")")
-        // TODO: 实现存储物品逻辑
+    /// 丢弃物品
+    private func handleDiscardItem(quantity: Int) {
+        print("🎒 [背包] 丢弃物品: \(item.name) x\(quantity)")
+        showDiscardSheet = false
+        isProcessing = true
+        Task {
+            do {
+                try await inventoryManager.removeItem(itemId: item.itemId, quantity: quantity)
+            } catch {
+                print("❌ [背包] 丢弃物品失败: \(error.localizedDescription)")
+            }
+            await MainActor.run {
+                isProcessing = false
+            }
+        }
+    }
+}
+
+// MARK: - Discard Item Sheet
+
+/// 丢弃物品弹窗
+struct DiscardItemSheet: View {
+    let item: InventoryDisplayItem
+    @Binding var quantity: Int
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // 物品信息
+                HStack(spacing: 16) {
+                    // 图标
+                    ZStack {
+                        Circle()
+                            .fill(categoryColor.opacity(0.2))
+                            .frame(width: 60, height: 60)
+
+                        Image(systemName: item.icon)
+                            .font(.system(size: 28))
+                            .foregroundColor(categoryColor)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.headline)
+                            .foregroundColor(ApocalypseTheme.textPrimary)
+
+                        Text("当前持有：\(item.quantity) 个")
+                            .font(.subheadline)
+                            .foregroundColor(ApocalypseTheme.textSecondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+
+                Divider()
+
+                // 数量选择
+                VStack(spacing: 12) {
+                    Text("选择丢弃数量")
+                        .font(.subheadline)
+                        .foregroundColor(ApocalypseTheme.textSecondary)
+
+                    HStack(spacing: 20) {
+                        // 减少按钮
+                        Button(action: {
+                            if quantity > 1 {
+                                quantity -= 1
+                            }
+                        }) {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(quantity > 1 ? ApocalypseTheme.primary : ApocalypseTheme.textMuted)
+                        }
+                        .disabled(quantity <= 1)
+
+                        // 数量显示
+                        Text("\(quantity)")
+                            .font(.system(size: 40, weight: .bold))
+                            .foregroundColor(ApocalypseTheme.textPrimary)
+                            .frame(width: 80)
+
+                        // 增加按钮
+                        Button(action: {
+                            if quantity < item.quantity {
+                                quantity += 1
+                            }
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(quantity < item.quantity ? ApocalypseTheme.primary : ApocalypseTheme.textMuted)
+                        }
+                        .disabled(quantity >= item.quantity)
+                    }
+
+                    // 快捷按钮
+                    if item.quantity > 1 {
+                        HStack(spacing: 12) {
+                            quickSelectButton(amount: 1, label: "1个")
+                            if item.quantity >= 5 {
+                                quickSelectButton(amount: 5, label: "5个")
+                            }
+                            if item.quantity >= 10 {
+                                quickSelectButton(amount: 10, label: "10个")
+                            }
+                            quickSelectButton(amount: item.quantity, label: "全部")
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // 确认按钮
+                Button(action: onConfirm) {
+                    HStack {
+                        Image(systemName: "trash.fill")
+                        Text("确认丢弃 \(quantity) 个")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(ApocalypseTheme.danger)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .padding(.top)
+            .background(ApocalypseTheme.background)
+            .navigationTitle("丢弃物品")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        onCancel()
+                    }
+                    .foregroundColor(ApocalypseTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    /// 快捷选择按钮
+    private func quickSelectButton(amount: Int, label: String) -> some View {
+        Button(action: {
+            quantity = min(amount, item.quantity)
+        }) {
+            Text(label)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(quantity == amount ? .white : ApocalypseTheme.textSecondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(quantity == amount ? ApocalypseTheme.primary : ApocalypseTheme.cardBackground)
+                .cornerRadius(8)
+        }
+    }
+
+    /// 分类对应的颜色
+    private var categoryColor: Color {
+        switch item.category {
+        case "water": return .blue
+        case "food": return .orange
+        case "medical": return .red
+        case "material": return .brown
+        case "tool": return .cyan
+        default: return .gray
+        }
     }
 }
 
@@ -525,5 +747,6 @@ struct ItemCardView: View {
 #Preview {
     NavigationView {
         BackpackView()
+            .environmentObject(AuthManager())
     }
 }

@@ -15,9 +15,6 @@ struct POIDetailView: View {
     /// POI数据
     let poi: POI
 
-    /// 是否显示探索结果页面
-    @State private var showExplorationResult = false
-
     /// POI状态（可变，用于更新标记）
     @State private var poiStatus: POIStatus
 
@@ -38,6 +35,9 @@ struct POIDetailView: View {
 
     /// 假来源
     private let mockSource: POISource = .mapData
+
+    /// POI搜索结果（搜寻POI时使用的临时结果）
+    @State private var poiSearchResult: ExplorationResult?
 
     // MARK: - Computed Properties
 
@@ -72,8 +72,8 @@ struct POIDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showExplorationResult) {
-            ExplorationResultView()
+        .sheet(item: $poiSearchResult) { result in
+            ExplorationResultView(result: result)
         }
     }
 
@@ -401,7 +401,22 @@ struct POIDetailView: View {
     /// 搜寻POI
     private func handleExplore() {
         print("🔍 [POI详情] 开始搜寻: \(poi.name)")
-        showExplorationResult = true
+
+        // 生成POI搜索结果（模拟）
+        // TODO: 后续可以连接真实的POI搜索逻辑
+        let mockItems = [
+            RewardItem(itemId: "water_bottle", name: "矿泉水", quantity: 2, rarity: "common", icon: "drop.fill", category: "water"),
+            RewardItem(itemId: "canned_food", name: "罐头食品", quantity: 1, rarity: "common", icon: "fork.knife", category: "food")
+        ]
+
+        poiSearchResult = ExplorationResult(
+            distance: mockDistance,
+            durationSeconds: 60,
+            tier: .bronze,
+            items: mockItems,
+            hasFailed: false,
+            failureReason: nil
+        )
     }
 
     /// 标记已发现

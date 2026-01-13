@@ -39,6 +39,9 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 当前用户 ID（用于区分我的领地和他人领地）
     var currentUserId: String?
 
+    /// 附近POI列表
+    var nearbyPOIs: [POI]
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建 MKMapView
@@ -73,6 +76,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         // 绘制领地
         context.coordinator.drawTerritories(on: uiView, territories: territories, currentUserId: currentUserId)
+
+        // 绘制POI标注
+        context.coordinator.updatePOIAnnotations(on: uiView, pois: nearbyPOIs)
     }
 
     /// 创建 Coordinator（处理地图代理事件）
@@ -298,6 +304,128 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
 
             return MKOverlayRenderer(overlay: overlay)
+        }
+
+        // MARK: - POI Annotations
+
+        /// 更新POI标注
+        func updatePOIAnnotations(on mapView: MKMapView, pois: [POI]) {
+            // 移除旧的POI标注
+            let existingPOIAnnotations = mapView.annotations.filter { $0 is POIAnnotation }
+            mapView.removeAnnotations(existingPOIAnnotations)
+
+            // 如果没有POI，直接返回
+            guard !pois.isEmpty else { return }
+
+            // 添加新的POI标注
+            for poi in pois {
+                // 转换坐标：WGS-84 → GCJ-02
+                let convertedCoord = CoordinateConverter.wgs84ToGcj02(poi.coordinate)
+
+                let annotation = POIAnnotation(poi: poi, coordinate: convertedCoord)
+                mapView.addAnnotation(annotation)
+            }
+
+            print("📍 [POI] 更新了 \(pois.count) 个POI标注")
+        }
+
+        /// POI标注视图
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            // 用户位置不需要自定义
+            if annotation is MKUserLocation {
+                return nil
+            }
+
+            // POI标注
+            if let poiAnnotation = annotation as? POIAnnotation {
+                let identifier = "POIAnnotation"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: poiAnnotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true
+                } else {
+                    annotationView?.annotation = poiAnnotation
+                }
+
+                // 根据POI类型设置样式
+                annotationView?.markerTintColor = poiAnnotation.markerColor
+                annotationView?.glyphImage = UIImage(systemName: poiAnnotation.iconName)
+
+                // 已搜刮的POI显示为灰色
+                if poiAnnotation.poi.status == .looted {
+                    annotationView?.markerTintColor = .gray
+                    annotationView?.alpha = 0.6
+                } else {
+                    annotationView?.alpha = 1.0
+                }
+
+                return annotationView
+            }
+
+            return nil
+        }
+    }
+}
+
+// MARK: - POI Annotation Class
+
+/// POI标注类
+class POIAnnotation: NSObject, MKAnnotation {
+    let poi: POI
+    let coordinate: CLLocationCoordinate2D
+
+    var title: String? {
+        return poi.name
+    }
+
+    var subtitle: String? {
+        return poi.type.rawValue
+    }
+
+    init(poi: POI, coordinate: CLLocationCoordinate2D) {
+        self.poi = poi
+        self.coordinate = coordinate
+        super.init()
+    }
+
+    /// 标注颜色
+    var markerColor: UIColor {
+        switch poi.type {
+        case .hospital:
+            return .systemRed
+        case .supermarket:
+            return .systemGreen
+        case .pharmacy:
+            return .systemBlue
+        case .gasStation:
+            return .systemOrange
+        case .factory:
+            return .systemGray
+        case .warehouse:
+            return .brown
+        case .school:
+            return .systemPurple
+        }
+    }
+
+    /// 图标名称
+    var iconName: String {
+        switch poi.type {
+        case .hospital:
+            return "cross.case.fill"
+        case .supermarket:
+            return "cart.fill"
+        case .pharmacy:
+            return "pills.fill"
+        case .gasStation:
+            return "fuelpump.fill"
+        case .factory:
+            return "gearshape.2.fill"
+        case .warehouse:
+            return "shippingbox.fill"
+        case .school:
+            return "book.fill"
         }
     }
 }
