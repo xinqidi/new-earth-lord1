@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MoreTabView: View {
     @EnvironmentObject private var languageManager: LanguageManager
+    @EnvironmentObject private var explorationManager: ExplorationManager
 
     var body: some View {
         NavigationStack {
@@ -39,7 +40,7 @@ struct MoreTabView: View {
                     // 功能列表
                     VStack(spacing: 16) {
                         // 开发测试按钮
-                        NavigationLink(destination: TestMenuView()) {
+                        NavigationLink(destination: TestMenuView().environmentObject(explorationManager)) {
                             HStack {
                                 Image(systemName: "hammer.fill")
                                     .font(.title2)
@@ -81,4 +82,7 @@ struct MoreTabView: View {
 
 #Preview {
     MoreTabView()
+        .environmentObject(LanguageManager.shared)
+        .environmentObject(LocationManager())
+        .environmentObject(ExplorationManager())
 }

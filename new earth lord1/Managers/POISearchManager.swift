@@ -136,10 +136,18 @@ class POISearchManager {
             return centerLocation.distance(from: loc1) < centerLocation.distance(from: loc2)
         }
 
-        // 限制数量
+        // 限制数量（优先取最近的POI）
         let limitedPOIs = Array(uniquePOIs.prefix(maxPOICount))
 
-        print("✅ [POI搜索] 搜索完成，找到 \(limitedPOIs.count) 个POI")
+        print("✅ [POI搜索] 搜索完成，找到 \(limitedPOIs.count) 个POI（已按距离从近到远排序）")
+        print("📍 [POI搜索] 玩家位置: (\(String(format: "%.6f", center.latitude)), \(String(format: "%.6f", center.longitude)))")
+
+        // 输出每个POI的详细信息，便于调试位置偏移问题
+        for (index, poi) in limitedPOIs.enumerated() {
+            print("   \(index + 1). \(poi.name)")
+            print("      坐标: (\(String(format: "%.6f", poi.coordinate.latitude)), \(String(format: "%.6f", poi.coordinate.longitude)))")
+            print("      距离: \(String(format: "%.0f", poi.distance))m")
+        }
 
         return limitedPOIs
     }

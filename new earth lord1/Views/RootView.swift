@@ -15,6 +15,9 @@ struct RootView: View {
     /// 定位管理器
     @StateObject private var locationManager = LocationManager()
 
+    /// 探索管理器
+    @StateObject private var explorationManager = ExplorationManager()
+
     /// 语言管理器
     @EnvironmentObject private var languageManager: LanguageManager
 
@@ -32,6 +35,7 @@ struct RootView: View {
                 MainTabView()
                     .environmentObject(authManager)
                     .environmentObject(locationManager)
+                    .environmentObject(explorationManager)
                     .transition(.opacity)
             } else {
                 // 未认证或需要设置密码 -> 显示登录/注册页

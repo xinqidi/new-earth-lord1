@@ -319,14 +319,13 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             // 添加新的POI标注
             for poi in pois {
-                // 转换坐标：WGS-84 → GCJ-02
-                let convertedCoord = CoordinateConverter.wgs84ToGcj02(poi.coordinate)
-
-                let annotation = POIAnnotation(poi: poi, coordinate: convertedCoord)
+                // ⚠️ 注意：MKLocalSearch返回的坐标在中国已经是GCJ-02格式
+                // 不需要再次转换，直接使用原始坐标
+                let annotation = POIAnnotation(poi: poi, coordinate: poi.coordinate)
                 mapView.addAnnotation(annotation)
             }
 
-            print("📍 [POI] 更新了 \(pois.count) 个POI标注")
+            print("📍 [POI] 更新了 \(pois.count) 个POI标注（使用原始坐标，无需转换）")
         }
 
         /// POI标注视图

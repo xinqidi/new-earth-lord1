@@ -68,7 +68,7 @@ struct MapTabView: View {
     // MARK: - 探索功能状态
 
     /// 探索管理器
-    @StateObject private var explorationManager = ExplorationManager()
+    @EnvironmentObject private var explorationManager: ExplorationManager
 
     /// 是否显示探索结果
     @State private var showExplorationResult = false

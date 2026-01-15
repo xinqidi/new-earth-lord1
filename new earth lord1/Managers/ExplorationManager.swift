@@ -261,6 +261,9 @@ class ExplorationManager: ObservableObject {
     /// 围栏通知订阅
     private var geofenceCancellable: AnyCancellable?
 
+    /// 已触发弹窗的POI ID集合（防止重复触发）
+    private var triggeredPOIIds: Set<UUID> = []
+
     // MARK: - Initialization
 
     init() {
@@ -375,6 +378,7 @@ class ExplorationManager: ObservableObject {
                 }
 
             print("🔍 [探索] 探索已开始")
+            ExplorationLogger.shared.log("探索已开始", type: .success)
 
             // 启动时长计时器
             self.durationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -408,6 +412,9 @@ class ExplorationManager: ObservableObject {
 
         // 检测速度
         checkSpeed(location: location)
+
+        // 检测POI接近（手动距离检测，作为地理围栏的补充）
+        checkPOIProximity(location: location)
     }
 
     /// 停止探索（正常结束）
@@ -433,6 +440,7 @@ class ExplorationManager: ObservableObject {
         let items = await generateRewards(tier: tier)
 
         print("✅ [探索] 探索完成: 距离 \(String(format: "%.0f", currentDistance))m, 时长 \(currentDuration)s, 等级 \(tier.displayName)")
+        ExplorationLogger.shared.log("探索完成: 距离 \(String(format: "%.0f", currentDistance))m, 时长 \(currentDuration)s, 等级 \(tier.displayName)", type: .success)
 
         // 更新数据库记录
         await updateExplorationSession(
@@ -899,7 +907,12 @@ class ExplorationManager: ObservableObject {
 
         await MainActor.run {
             self.nearbyPOIs = pois
+            self.triggeredPOIIds.removeAll()  // 重置已触发记录
             print("✅ [POI] 找到 \(pois.count) 个POI")
+            ExplorationLogger.shared.log("搜索到 \(pois.count) 个POI", type: .poi)
+            for poi in pois {
+                ExplorationLogger.shared.log("  - \(poi.name) (\(String(format: "%.0f", poi.distance))m)", type: .poi)
+            }
         }
 
         // 设置地理围栏
@@ -913,7 +926,16 @@ class ExplorationManager: ObservableObject {
     private func setupGeofences(for pois: [POI]) {
         guard let locationManager = locationManager else { return }
 
+        // 检查是否有"始终"位置权限（地理围栏需要）
+        if !locationManager.hasAlwaysPermission {
+            print("⚠️ [POI] 没有始终位置权限，请求权限...")
+            ExplorationLogger.shared.log("没有始终位置权限，围栏可能失败", type: .warning)
+            locationManager.requestAlwaysPermission()
+            // 注意：权限请求是异步的，用户授权后下次探索会生效
+        }
+
         print("📍 [POI] 设置地理围栏，共 \(pois.count) 个")
+        ExplorationLogger.shared.log("设置地理围栏: \(pois.count) 个", type: .info)
 
         for poi in pois {
             let region = CLCircularRegion(
@@ -943,7 +965,46 @@ class ExplorationManager: ObservableObject {
             }
     }
 
-    /// 处理进入POI围栏
+    /// 检测是否接近POI（手动距离检测，作为地理围栏的补充）
+    private func checkPOIProximity(location: CLLocation) {
+        // 如果已经在显示弹窗，不检测
+        guard !showPOIPopup, !showScavengeResult else { return }
+
+        // 如果没有POI，直接返回
+        guard !nearbyPOIs.isEmpty else { return }
+
+        for poi in nearbyPOIs {
+            // 跳过已搜刮的POI
+            guard poi.status != .looted else { continue }
+
+            // 跳过已触发过弹窗的POI
+            guard !triggeredPOIIds.contains(poi.id) else { continue }
+
+            // 计算距离
+            let poiLocation = CLLocation(latitude: poi.coordinate.latitude, longitude: poi.coordinate.longitude)
+            let distance = location.distance(from: poiLocation)
+
+            // 调试：输出当前距离POI的距离
+            print("📏 [POI检测] \(poi.name) 距离: \(String(format: "%.1f", distance))m（阈值: \(poiGeofenceRadius)m）")
+            ExplorationLogger.shared.log("\(poi.name) 距离: \(String(format: "%.1f", distance))m", type: .distance)
+
+            // 如果在50米范围内，触发弹窗
+            if distance <= poiGeofenceRadius {
+                print("🎯 [POI] 手动检测接近POI: \(poi.name)，距离 \(String(format: "%.1f", distance))m")
+                ExplorationLogger.shared.log("✓ 接近POI: \(poi.name)，距离 \(String(format: "%.1f", distance))m", type: .success)
+
+                // 记录已触发，避免重复弹窗
+                triggeredPOIIds.insert(poi.id)
+
+                // 显示弹窗
+                currentPOI = poi
+                showPOIPopup = true
+                break
+            }
+        }
+    }
+
+    /// 处理进入POI围栏（地理围栏触发）
     func handleEnterPOIRegion(identifier: String) {
         guard isExploring else { return }
 
@@ -959,7 +1020,16 @@ class ExplorationManager: ObservableObject {
             return
         }
 
-        print("🎯 [POI] 进入POI范围: \(poi.name)")
+        // 检查是否已通过手动检测触发过
+        guard !triggeredPOIIds.contains(poi.id) else {
+            print("📍 [POI] 围栏触发但已通过手动检测处理: \(poi.name)")
+            return
+        }
+
+        print("🎯 [POI] 围栏触发进入POI范围: \(poi.name)")
+
+        // 记录已触发，避免重复弹窗
+        triggeredPOIIds.insert(poi.id)
 
         // 更新当前POI并显示弹窗
         currentPOI = poi
@@ -1063,8 +1133,9 @@ class ExplorationManager: ObservableObject {
         geofenceCancellable?.cancel()
         geofenceCancellable = nil
 
-        // 清空POI列表
+        // 清空POI列表和已触发记录
         nearbyPOIs.removeAll()
+        triggeredPOIIds.removeAll()
         currentPOI = nil
         showPOIPopup = false
         scavengeResult = nil

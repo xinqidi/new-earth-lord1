@@ -3,7 +3,7 @@
 //  new earth lord1
 //
 //  测试模块入口菜单
-//  显示所有测试功能的入口，包括 Supabase 测试和圈地测试
+//  显示所有测试功能的入口，包括 Supabase 测试、圈地测试和探索测试
 //
 
 import SwiftUI
@@ -17,6 +17,9 @@ struct TestMenuView: View {
 
     /// 定位管理器
     @EnvironmentObject private var locationManager: LocationManager
+
+    /// 探索管理器
+    @EnvironmentObject private var explorationManager: ExplorationManager
 
     // MARK: - Body
 
@@ -70,6 +73,31 @@ struct TestMenuView: View {
                 }
                 .padding(.vertical, 8)
             }
+
+            // MARK: - 探索功能测试
+
+            NavigationLink(destination:
+                ExplorationLogView()
+                    .environmentObject(explorationManager)
+            ) {
+                HStack(spacing: 16) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 24))
+                        .foregroundColor(ApocalypseTheme.primary)
+                        .frame(width: 40)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("探索功能测试")
+                            .font(.headline)
+                            .foregroundColor(ApocalypseTheme.textPrimary)
+
+                        Text("查看POI检测和探索日志")
+                            .font(.caption)
+                            .foregroundColor(ApocalypseTheme.textSecondary)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
         }
         .navigationTitle("开发测试")
         .navigationBarTitleDisplayMode(.large)
@@ -85,5 +113,6 @@ struct TestMenuView: View {
         TestMenuView()
             .environmentObject(LanguageManager.shared)
             .environmentObject(LocationManager())
+            .environmentObject(ExplorationManager())
     }
 }

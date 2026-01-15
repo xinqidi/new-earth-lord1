@@ -137,10 +137,22 @@ class LocationManager: NSObject, ObservableObject {
 
     // MARK: - Public Methods
 
-    /// 请求定位权限
+    /// 请求定位权限（首先请求"使用时"权限）
     func requestPermission() {
         print("🔑 [定位管理] 请求定位权限")
         locationManager.requestWhenInUseAuthorization()
+    }
+
+    /// 请求"始终"位置权限（用于地理围栏功能）
+    /// 注意：必须先获得"使用时"权限后才能请求"始终"权限
+    func requestAlwaysPermission() {
+        print("🔑 [定位管理] 请求始终位置权限（用于地理围栏）")
+        locationManager.requestAlwaysAuthorization()
+    }
+
+    /// 是否已有"始终"位置权限
+    var hasAlwaysPermission: Bool {
+        return authorizationStatus == .authorizedAlways
     }
 
     /// 开始更新位置
