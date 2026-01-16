@@ -37,6 +37,10 @@ struct RootView: View {
                     .environmentObject(locationManager)
                     .environmentObject(explorationManager)
                     .transition(.opacity)
+                    .onAppear {
+                        // 配置并启动玩家位置上报
+                        configureAndStartPlayerLocationReporting()
+                    }
             } else {
                 // 未认证或需要设置密码 -> 显示登录/注册页
                 AuthView()
@@ -49,6 +53,38 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.3), value: authManager.needsPasswordSetup)
         // 🔑 关键修复：当语言改变时，强制重新渲染整个 View 树
         .id(languageManager.currentLanguage)
+    }
+
+    // MARK: - Private Methods
+
+    /// 配置并启动玩家位置上报
+    private func configureAndStartPlayerLocationReporting() {
+        guard let userId = authManager.currentUser?.id else {
+            print("⚠️ [位置上报] 用户未登录，跳过位置上报配置")
+            return
+        }
+
+        // 配置 PlayerLocationManager
+        PlayerLocationManager.shared.configure(
+            supabase: authManager.supabase,
+            userId: userId,
+            locationManager: locationManager
+        )
+
+        // 同时配置 ExplorationManager（确保它也有正确的配置）
+        explorationManager.configure(
+            supabase: authManager.supabase,
+            userId: userId,
+            locationManager: locationManager
+        )
+
+        // 配置 AIItemGenerator
+        AIItemGenerator.shared.configure(supabase: authManager.supabase)
+
+        // 启动位置上报
+        PlayerLocationManager.shared.startReporting()
+
+        print("✅ [位置上报] 配置完成并开始上报")
     }
 }
 

@@ -121,8 +121,9 @@ struct RewardItem: Identifiable {
     let rarity: String
     let icon: String
     let category: String
+    let story: String?  // AI生成的物品背景故事
 
-    init(itemId: String, name: String, quantity: Int, rarity: String, icon: String, category: String) {
+    init(itemId: String, name: String, quantity: Int, rarity: String, icon: String, category: String, story: String? = nil) {
         self.id = UUID()
         self.itemId = itemId
         self.name = name
@@ -130,6 +131,7 @@ struct RewardItem: Identifiable {
         self.rarity = rarity
         self.icon = icon
         self.category = category
+        self.story = story
     }
 }
 
@@ -902,8 +904,19 @@ class ExplorationManager: ObservableObject {
 
         print("🔍 [POI] 开始搜索附近POI...")
 
-        // 搜索附近POI
-        let pois = await POISearchManager.shared.searchNearbyPOIs(center: currentLocation.coordinate)
+        // 1. 先上报当前位置（确保自己被计入在线）
+        await PlayerLocationManager.shared.reportCurrentLocation(isOnline: true)
+
+        // 2. 查询附近玩家数量，获取密度等级
+        let playerCount = await PlayerLocationManager.shared.queryNearbyPlayerCount()
+        let densityLevel = PlayerDensityLevel.fromPlayerCount(playerCount)
+        let maxPOICount = densityLevel.maxPOICount
+
+        print("👥 [POI] 附近玩家: \(playerCount)人，密度等级: \(densityLevel.displayName)，POI数量: \(maxPOICount)")
+        ExplorationLogger.shared.log("附近玩家: \(playerCount)人，密度: \(densityLevel.displayName)，POI: \(maxPOICount)个", type: .info)
+
+        // 3. 根据密度动态搜索POI
+        let pois = await POISearchManager.shared.searchNearbyPOIs(center: currentLocation.coordinate, maxCount: maxPOICount)
 
         await MainActor.run {
             self.nearbyPOIs = pois
@@ -967,12 +980,22 @@ class ExplorationManager: ObservableObject {
 
     /// 检测是否接近POI（手动距离检测，作为地理围栏的补充）
     private func checkPOIProximity(location: CLLocation) {
-        // 如果已经在显示弹窗，不检测
-        guard !showPOIPopup, !showScavengeResult else { return }
-
         // 如果没有POI，直接返回
         guard !nearbyPOIs.isEmpty else { return }
 
+        // 第一步：更新所有 POI 的实时距离（无论是否显示弹窗）
+        for index in nearbyPOIs.indices {
+            let poiLocation = CLLocation(
+                latitude: nearbyPOIs[index].coordinate.latitude,
+                longitude: nearbyPOIs[index].coordinate.longitude
+            )
+            nearbyPOIs[index].distance = location.distance(from: poiLocation)
+        }
+
+        // 如果已经在显示弹窗，不进行接近检测
+        guard !showPOIPopup, !showScavengeResult else { return }
+
+        // 第二步：检测是否接近任何 POI
         for poi in nearbyPOIs {
             // 跳过已搜刮的POI
             guard poi.status != .looted else { continue }
@@ -980,18 +1003,14 @@ class ExplorationManager: ObservableObject {
             // 跳过已触发过弹窗的POI
             guard !triggeredPOIIds.contains(poi.id) else { continue }
 
-            // 计算距离
-            let poiLocation = CLLocation(latitude: poi.coordinate.latitude, longitude: poi.coordinate.longitude)
-            let distance = location.distance(from: poiLocation)
-
-            // 调试：输出当前距离POI的距离
-            print("📏 [POI检测] \(poi.name) 距离: \(String(format: "%.1f", distance))m（阈值: \(poiGeofenceRadius)m）")
-            ExplorationLogger.shared.log("\(poi.name) 距离: \(String(format: "%.1f", distance))m", type: .distance)
+            // 调试：输出当前距离POI的距离（现在是实时距离）
+            print("📏 [POI检测] \(poi.name) 距离: \(String(format: "%.1f", poi.distance))m（阈值: \(poiGeofenceRadius)m）")
+            ExplorationLogger.shared.log("\(poi.name) 距离: \(String(format: "%.1f", poi.distance))m", type: .distance)
 
             // 如果在50米范围内，触发弹窗
-            if distance <= poiGeofenceRadius {
-                print("🎯 [POI] 手动检测接近POI: \(poi.name)，距离 \(String(format: "%.1f", distance))m")
-                ExplorationLogger.shared.log("✓ 接近POI: \(poi.name)，距离 \(String(format: "%.1f", distance))m", type: .success)
+            if poi.distance <= poiGeofenceRadius {
+                print("🎯 [POI] 手动检测接近POI: \(poi.name)，距离 \(String(format: "%.1f", poi.distance))m")
+                ExplorationLogger.shared.log("✓ 接近POI: \(poi.name)，距离 \(String(format: "%.1f", poi.distance))m", type: .success)
 
                 // 记录已触发，避免重复弹窗
                 triggeredPOIIds.insert(poi.id)
@@ -1038,32 +1057,27 @@ class ExplorationManager: ObservableObject {
 
     /// 执行搜刮
     func scavengePOI(_ poi: POI) async -> [RewardItem] {
-        print("🔍 [POI] 开始搜刮: \(poi.name)")
+        print("🔍 [POI] 开始搜刮: \(poi.name)，危险等级: \(poi.dangerLevel.displayName)")
 
-        // 生成1-3件随机物品
-        let itemCount = Int.random(in: 1...3)
+        // 根据危险等级计算物品数量
+        let itemCount = calculateItemCount(for: poi.dangerLevel)
         var rewards: [RewardItem] = []
 
-        // 简化版：从所有物品中随机抽取
-        let allItems = Array(cachedItemDefinitions.values)
-
-        guard !allItems.isEmpty else {
-            print("⚠️ [POI] 物品池为空")
-            return []
+        // 尝试使用AI生成物品
+        do {
+            rewards = try await AIItemGenerator.shared.generateItems(for: poi, itemCount: itemCount)
+            print("🤖 [POI] AI成功生成 \(rewards.count) 件物品")
+        } catch {
+            // AI生成失败，使用备用方案
+            print("⚠️ [POI] AI生成失败: \(error.localizedDescription)，使用备用物品")
+            rewards = AIItemGenerator.shared.generateFallbackItems(for: poi, count: itemCount)
         }
 
-        for _ in 0..<itemCount {
-            if let item = allItems.randomElement() {
-                let reward = RewardItem(
-                    itemId: item.id,
-                    name: item.name,
-                    quantity: Int.random(in: 1...2),
-                    rarity: item.rarity,
-                    icon: item.icon ?? "questionmark",
-                    category: item.category
-                )
-                rewards.append(reward)
-                print("🎲 [POI] 获得物品: \(item.name) x\(reward.quantity)")
+        // 输出获得的物品
+        for reward in rewards {
+            print("🎲 [POI] 获得物品: \(reward.name) [\(reward.rarity)] x\(reward.quantity)")
+            if let story = reward.story {
+                print("   📖 \(story)")
             }
         }
 
@@ -1079,6 +1093,20 @@ class ExplorationManager: ObservableObject {
 
         print("✅ [POI] 搜刮完成，获得 \(rewards.count) 件物品")
         return rewards
+    }
+
+    /// 根据危险等级计算物品数量
+    private func calculateItemCount(for dangerLevel: DangerLevel) -> Int {
+        switch dangerLevel {
+        case .low:
+            return Int.random(in: 1...2)
+        case .medium:
+            return Int.random(in: 2...3)
+        case .high:
+            return Int.random(in: 2...4)
+        case .extreme:
+            return Int.random(in: 3...5)
+        }
     }
 
     /// 确认搜刮POI（从UI调用）

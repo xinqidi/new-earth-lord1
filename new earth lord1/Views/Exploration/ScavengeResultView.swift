@@ -27,6 +27,9 @@ struct ScavengeResultView: View {
     /// 是否显示动画
     @State private var showItems = false
 
+    /// 展开的物品ID（显示故事）
+    @State private var expandedItemIds: Set<UUID> = []
+
     var body: some View {
         VStack(spacing: 0) {
             // 头部
@@ -41,14 +44,26 @@ struct ScavengeResultView: View {
                     .fontWeight(.bold)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
-                // POI名称
-                HStack(spacing: 4) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.subheadline)
-                    Text(result.poi.name)
-                        .font(.subheadline)
+                // POI名称和危险等级
+                VStack(spacing: 4) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.subheadline)
+                        Text(result.poi.name)
+                            .font(.subheadline)
+                    }
+                    .foregroundColor(ApocalypseTheme.textSecondary)
+
+                    // 危险等级标签
+                    Text(result.poi.dangerLevel.displayName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(dangerLevelColor(result.poi.dangerLevel))
+                        .cornerRadius(4)
                 }
-                .foregroundColor(ApocalypseTheme.textSecondary)
             }
             .padding(.top, 24)
             .padding(.bottom, 16)
@@ -76,36 +91,78 @@ struct ScavengeResultView: View {
                     .background(ApocalypseTheme.background)
                     .cornerRadius(8)
                 } else {
-                    // 物品列表
+                    // 物品列表（可展开显示故事）
                     ForEach(Array(result.items.enumerated()), id: \.element.id) { index, item in
-                        HStack {
-                            // 物品图标
-                            Image(systemName: item.icon)
-                                .font(.title3)
-                                .foregroundColor(rarityColor(item.rarity))
-                                .frame(width: 36, height: 36)
-                                .background(rarityColor(item.rarity).opacity(0.15))
-                                .cornerRadius(8)
+                        VStack(spacing: 0) {
+                            // 物品主行
+                            HStack {
+                                // 物品图标
+                                Image(systemName: item.icon)
+                                    .font(.title3)
+                                    .foregroundColor(rarityColor(item.rarity))
+                                    .frame(width: 36, height: 36)
+                                    .background(rarityColor(item.rarity).opacity(0.15))
+                                    .cornerRadius(8)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.name)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(ApocalypseTheme.textPrimary)
+
+                                    Text(rarityDisplayName(item.rarity))
+                                        .font(.caption)
+                                        .foregroundColor(rarityColor(item.rarity))
+                                }
+
+                                Spacer()
+
+                                // 数量
+                                Text("x\(item.quantity)")
+                                    .font(.headline)
                                     .foregroundColor(ApocalypseTheme.textPrimary)
 
-                                Text(rarityDisplayName(item.rarity))
-                                    .font(.caption)
-                                    .foregroundColor(rarityColor(item.rarity))
+                                // 展开指示器（如果有故事）
+                                if item.story != nil {
+                                    Image(systemName: expandedItemIds.contains(item.id) ? "chevron.up" : "chevron.down")
+                                        .font(.caption)
+                                        .foregroundColor(ApocalypseTheme.textSecondary)
+                                }
+                            }
+                            .padding()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if item.story != nil {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        if expandedItemIds.contains(item.id) {
+                                            expandedItemIds.remove(item.id)
+                                        } else {
+                                            expandedItemIds.insert(item.id)
+                                        }
+                                    }
+                                }
                             }
 
-                            Spacer()
-
-                            // 数量
-                            Text("x\(item.quantity)")
-                                .font(.headline)
-                                .foregroundColor(ApocalypseTheme.textPrimary)
+                            // 物品故事（展开显示）
+                            if let story = item.story, expandedItemIds.contains(item.id) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Divider()
+                                        .background(ApocalypseTheme.textSecondary.opacity(0.2))
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Image(systemName: "book.fill")
+                                            .font(.caption)
+                                            .foregroundColor(ApocalypseTheme.textSecondary)
+                                        Text(story)
+                                            .font(.caption)
+                                            .foregroundColor(ApocalypseTheme.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.bottom, 12)
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
-                        .padding()
                         .background(ApocalypseTheme.background)
                         .cornerRadius(8)
                         .opacity(showItems ? 1 : 0)
@@ -153,10 +210,14 @@ struct ScavengeResultView: View {
         switch rarity.lowercased() {
         case "common":
             return .gray
+        case "uncommon":
+            return .green
         case "rare":
             return .blue
         case "epic":
             return .purple
+        case "legendary":
+            return .orange
         default:
             return .gray
         }
@@ -166,12 +227,29 @@ struct ScavengeResultView: View {
         switch rarity.lowercased() {
         case "common":
             return "普通"
+        case "uncommon":
+            return "优秀"
         case "rare":
             return "稀有"
         case "epic":
             return "史诗"
+        case "legendary":
+            return "传奇"
         default:
             return rarity
+        }
+    }
+
+    private func dangerLevelColor(_ level: DangerLevel) -> Color {
+        switch level {
+        case .low:
+            return .green
+        case .medium:
+            return .yellow
+        case .high:
+            return .orange
+        case .extreme:
+            return .red
         }
     }
 }

@@ -30,9 +30,6 @@ struct POIDetailView: View {
     /// 假距离数据（米）
     private let mockDistance: Double = 350
 
-    /// 假危险等级
-    private let mockDangerLevel: DangerLevel = .low
-
     /// 假来源
     private let mockSource: POISource = .mapData
 
@@ -167,7 +164,7 @@ struct POIDetailView: View {
             infoCard(
                 icon: "exclamationmark.triangle.fill",
                 title: "危险等级",
-                content: mockDangerLevel.rawValue,
+                content: poi.dangerLevel.displayName,
                 color: dangerLevelColor
             )
 
@@ -384,14 +381,14 @@ struct POIDetailView: View {
 
     /// 危险等级颜色
     private var dangerLevelColor: Color {
-        switch mockDangerLevel {
-        case .safe:
-            return ApocalypseTheme.success
+        switch poi.dangerLevel {
         case .low:
-            return .yellow
+            return ApocalypseTheme.success
         case .medium:
-            return .orange
+            return .yellow
         case .high:
+            return .orange
+        case .extreme:
             return ApocalypseTheme.danger
         }
     }
@@ -437,14 +434,6 @@ struct POIDetailView: View {
 }
 
 // MARK: - Supporting Types
-
-/// 危险等级
-enum DangerLevel: String {
-    case safe = "安全"
-    case low = "低危"
-    case medium = "中危"
-    case high = "高危"
-}
 
 /// POI来源
 enum POISource: String {

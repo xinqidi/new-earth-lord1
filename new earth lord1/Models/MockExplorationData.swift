@@ -33,6 +33,49 @@ enum POIType: String {
     case school = "废弃学校"
 }
 
+/// POI危险等级
+/// 决定搜刮物品的稀有度分布
+enum DangerLevel: Int, CaseIterable {
+    case low = 1       // 低危：普通70%, 优秀25%, 稀有5%
+    case medium = 3    // 中危：普通50%, 优秀30%, 稀有15%, 史诗5%
+    case high = 4      // 高危：优秀40%, 稀有35%, 史诗20%, 传奇5%
+    case extreme = 5   // 极危：稀有30%, 史诗40%, 传奇30%
+
+    /// 显示名称
+    var displayName: String {
+        switch self {
+        case .low: return "低危"
+        case .medium: return "中危"
+        case .high: return "高危"
+        case .extreme: return "极危"
+        }
+    }
+
+    /// 危险等级颜色（用于UI显示）
+    var colorName: String {
+        switch self {
+        case .low: return "green"
+        case .medium: return "yellow"
+        case .high: return "orange"
+        case .extreme: return "red"
+        }
+    }
+
+    /// 根据POI类型获取默认危险等级
+    static func defaultLevel(for type: POIType) -> DangerLevel {
+        switch type {
+        case .supermarket, .pharmacy:
+            return .low
+        case .gasStation, .school:
+            return .medium
+        case .hospital, .warehouse:
+            return .high
+        case .factory:
+            return .extreme
+        }
+    }
+}
+
 /// POI兴趣点
 struct POI: Identifiable {
     let id: UUID
@@ -40,10 +83,11 @@ struct POI: Identifiable {
     let type: POIType
     let coordinate: CLLocationCoordinate2D
     var status: POIStatus
-    let distance: Double // 距离用户的距离（米）
+    var distance: Double // 距离用户的距离（米）- 实时更新
     let description: String
+    let dangerLevel: DangerLevel // 危险等级，决定搜刮物品稀有度
 
-    init(id: UUID = UUID(), name: String, type: POIType, coordinate: CLLocationCoordinate2D, status: POIStatus, distance: Double, description: String) {
+    init(id: UUID = UUID(), name: String, type: POIType, coordinate: CLLocationCoordinate2D, status: POIStatus, distance: Double, description: String, dangerLevel: DangerLevel? = nil) {
         self.id = id
         self.name = name
         self.type = type
@@ -51,6 +95,8 @@ struct POI: Identifiable {
         self.status = status
         self.distance = distance
         self.description = description
+        // 如果未指定危险等级，使用POI类型的默认值
+        self.dangerLevel = dangerLevel ?? DangerLevel.defaultLevel(for: type)
     }
 }
 

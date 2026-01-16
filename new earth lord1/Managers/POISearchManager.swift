@@ -85,11 +85,13 @@ class POISearchManager {
     /// - Parameters:
     ///   - center: 搜索中心点
     ///   - radius: 搜索半径（默认1000米）
+    ///   - maxCount: 最大返回数量（默认使用maxPOICount，可根据玩家密度动态调整）
     /// - Returns: 游戏POI列表
-    func searchNearbyPOIs(center: CLLocationCoordinate2D, radius: CLLocationDistance? = nil) async -> [POI] {
+    func searchNearbyPOIs(center: CLLocationCoordinate2D, radius: CLLocationDistance? = nil, maxCount: Int? = nil) async -> [POI] {
         let searchRadius = radius ?? self.searchRadius
+        let limitCount = maxCount ?? self.maxPOICount
 
-        print("🔍 [POI搜索] 开始搜索附近POI，中心: (\(center.latitude), \(center.longitude))，半径: \(searchRadius)m")
+        print("🔍 [POI搜索] 开始搜索附近POI，中心: (\(center.latitude), \(center.longitude))，半径: \(searchRadius)m，最大数量: \(limitCount)")
 
         // 搜索多种类型的POI
         let categoriesToSearch: [MKPointOfInterestCategory] = [
@@ -136,8 +138,8 @@ class POISearchManager {
             return centerLocation.distance(from: loc1) < centerLocation.distance(from: loc2)
         }
 
-        // 限制数量（优先取最近的POI）
-        let limitedPOIs = Array(uniquePOIs.prefix(maxPOICount))
+        // 限制数量（优先取最近的POI，根据玩家密度动态调整）
+        let limitedPOIs = Array(uniquePOIs.prefix(limitCount))
 
         print("✅ [POI搜索] 搜索完成，找到 \(limitedPOIs.count) 个POI（已按距离从近到远排序）")
         print("📍 [POI搜索] 玩家位置: (\(String(format: "%.6f", center.latitude)), \(String(format: "%.6f", center.longitude)))")
