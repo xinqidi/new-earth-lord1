@@ -42,7 +42,7 @@ struct ResourcesTabView: View {
                     contentView
                 }
             }
-            .navigationTitle("资源")
+            .navigationTitle("资源".localized)
             .navigationBarTitleDisplayMode(.large)
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -58,7 +58,7 @@ struct ResourcesTabView: View {
                     .font(.headline)
                     .foregroundColor(isTradingEnabled ? ApocalypseTheme.success : ApocalypseTheme.textMuted)
 
-                Text("交易模式")
+                Text("交易模式".localized)
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
             }
@@ -81,7 +81,7 @@ struct ResourcesTabView: View {
     // MARK: - 分段选择器
 
     private var segmentedPicker: some View {
-        Picker("资源分段", selection: $selectedSegment) {
+        Picker("资源分段".localized, selection: $selectedSegment) {
             ForEach(ResourceSegment.allCases) { segment in
                 Text(segment.title)
                     .tag(segment)
@@ -106,22 +106,22 @@ struct ResourcesTabView: View {
             case .purchased:
                 placeholderView(
                     icon: "bag.fill",
-                    title: "已购物品",
-                    description: "功能开发中"
+                    title: "已购物品".localized,
+                    description: "功能开发中".localized
                 )
 
             case .territory:
                 placeholderView(
                     icon: "map.fill",
-                    title: "领地管理",
-                    description: "功能开发中"
+                    title: "领地管理".localized,
+                    description: "功能开发中".localized
                 )
 
             case .trading:
                 placeholderView(
                     icon: "arrow.left.arrow.right",
-                    title: "交易市场",
-                    description: "功能开发中"
+                    title: "交易市场".localized,
+                    description: "功能开发中".localized
                 )
             }
         }
@@ -149,7 +149,7 @@ struct ResourcesTabView: View {
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
             // 提示
-            Text("敬请期待...")
+            Text("敬请期待...".localized)
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textMuted)
 
@@ -185,13 +185,13 @@ enum ResourceSegment: Int, CaseIterable, Identifiable {
         case .poi:
             return "POI"
         case .backpack:
-            return "背包"
+            return "背包".localized
         case .purchased:
-            return "已购"
+            return "已购".localized
         case .territory:
-            return "领地"
+            return "领地".localized
         case .trading:
-            return "交易"
+            return "交易".localized
         }
     }
 }

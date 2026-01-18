@@ -85,7 +85,7 @@ struct BackpackView: View {
                 }
             }
         }
-        .navigationTitle("背包")
+        .navigationTitle("背包".localized)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // 配置并加载背包
@@ -112,7 +112,7 @@ struct BackpackView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: ApocalypseTheme.primary))
                 .scaleEffect(1.5)
-            Text("加载背包中...")
+            Text("加载背包中...".localized)
                 .font(.subheadline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
             Spacer()
@@ -138,7 +138,7 @@ struct BackpackView: View {
                     await inventoryManager.loadInventory()
                 }
             }) {
-                Text("重试")
+                Text("重试".localized)
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
@@ -160,7 +160,7 @@ struct BackpackView: View {
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.primary)
 
-                Text("背包容量：\(inventoryManager.totalItemCount) / \(inventoryManager.maxCapacity)")
+                Text("\("背包容量：".localized)\(inventoryManager.totalItemCount) / \(inventoryManager.maxCapacity)")
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
@@ -200,7 +200,7 @@ struct BackpackView: View {
                         .font(.caption)
                         .foregroundColor(ApocalypseTheme.danger)
 
-                    Text("背包快满了！")
+                    Text("背包快满了！".localized)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(ApocalypseTheme.danger)
@@ -222,7 +222,7 @@ struct BackpackView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(ApocalypseTheme.textMuted)
 
-            TextField("搜索物品...", text: $searchText)
+            TextField("搜索物品...".localized, text: $searchText)
                 .foregroundColor(ApocalypseTheme.textPrimary)
                 .autocapitalization(.none)
 
@@ -247,14 +247,14 @@ struct BackpackView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 // "全部"按钮
-                categoryButton(title: "全部", icon: "square.grid.2x2.fill", category: nil)
+                categoryButton(title: "全部".localized, icon: "square.grid.2x2.fill", category: nil)
 
                 // 各分类按钮
-                categoryButton(title: "食物", icon: "fork.knife", category: "food")
-                categoryButton(title: "水", icon: "drop.fill", category: "water")
-                categoryButton(title: "材料", icon: "hammer.fill", category: "material")
-                categoryButton(title: "工具", icon: "wrench.fill", category: "tool")
-                categoryButton(title: "医疗", icon: "cross.fill", category: "medical")
+                categoryButton(title: "食物".localized, icon: "fork.knife", category: "food")
+                categoryButton(title: "水".localized, icon: "drop.fill", category: "water")
+                categoryButton(title: "材料".localized, icon: "hammer.fill", category: "material")
+                categoryButton(title: "工具".localized, icon: "wrench.fill", category: "tool")
+                categoryButton(title: "医疗".localized, icon: "cross.fill", category: "medical")
             }
             .padding(.horizontal)
         }
@@ -332,12 +332,12 @@ struct BackpackView: View {
                 .foregroundColor(ApocalypseTheme.textMuted)
 
             // 主标题
-            Text(inventoryManager.items.isEmpty ? "背包空空如也" : "没有找到相关物品")
+            Text(inventoryManager.items.isEmpty ? "背包空空如也".localized : "没有找到相关物品".localized)
                 .font(.headline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
             // 副标题
-            Text(inventoryManager.items.isEmpty ? "去探索收集物资吧" : "尝试其他搜索关键词或分类")
+            Text(inventoryManager.items.isEmpty ? "去探索收集物资吧".localized : "尝试其他搜索关键词或分类".localized)
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textMuted)
         }
@@ -406,7 +406,7 @@ struct BackpackItemCardView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "star.fill")
                             .font(.caption2)
-                        Text("品质：\(quality)")
+                        Text(String(format: "品质：%@".localized, quality))
                             .font(.caption)
                     }
                     .foregroundColor(qualityColor(quality))
@@ -421,7 +421,7 @@ struct BackpackItemCardView: View {
                 Button(action: {
                     showUseConfirmation = true
                 }) {
-                    Text("使用")
+                    Text("使用".localized)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -437,7 +437,7 @@ struct BackpackItemCardView: View {
                     discardQuantity = 1
                     showDiscardSheet = true
                 }) {
-                    Text("丢弃")
+                    Text("丢弃".localized)
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(ApocalypseTheme.textSecondary)
@@ -455,13 +455,13 @@ struct BackpackItemCardView: View {
         .shadow(color: .black.opacity(0.1), radius: 5)
         .opacity(isProcessing ? 0.6 : 1.0)
         // 使用确认弹窗
-        .alert("使用物品", isPresented: $showUseConfirmation) {
-            Button("取消", role: .cancel) { }
-            Button("确认使用") {
+        .alert("使用物品".localized, isPresented: $showUseConfirmation) {
+            Button("取消".localized, role: .cancel) { }
+            Button("确认使用".localized) {
                 handleUseItem()
             }
         } message: {
-            Text("确定要使用 \(item.name) 吗？")
+            Text(String(format: "确定要使用 %@ 吗？".localized, item.name))
         }
         // 丢弃弹窗（带数量选择）
         .sheet(isPresented: $showDiscardSheet) {
@@ -616,7 +616,7 @@ struct DiscardItemSheet: View {
                             .font(.headline)
                             .foregroundColor(ApocalypseTheme.textPrimary)
 
-                        Text("当前持有：\(item.quantity) 个")
+                        Text(String(format: "当前持有：%lld 个".localized, item.quantity))
                             .font(.subheadline)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                     }
@@ -629,7 +629,7 @@ struct DiscardItemSheet: View {
 
                 // 数量选择
                 VStack(spacing: 12) {
-                    Text("选择丢弃数量")
+                    Text("选择丢弃数量".localized)
                         .font(.subheadline)
                         .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -686,7 +686,7 @@ struct DiscardItemSheet: View {
                 Button(action: onConfirm) {
                     HStack {
                         Image(systemName: "trash.fill")
-                        Text("确认丢弃 \(quantity) 个")
+                        Text(String(format: "确认丢弃 %lld 个".localized, quantity))
                     }
                     .font(.headline)
                     .foregroundColor(.white)
@@ -700,11 +700,11 @@ struct DiscardItemSheet: View {
             }
             .padding(.top)
             .background(ApocalypseTheme.background)
-            .navigationTitle("丢弃物品")
+            .navigationTitle("丢弃物品".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
+                    Button("取消".localized) {
                         onCancel()
                     }
                     .foregroundColor(ApocalypseTheme.textSecondary)

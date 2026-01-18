@@ -39,7 +39,7 @@ struct ScavengeResultView: View {
                     .font(.system(size: 50))
                     .foregroundColor(.green)
 
-                Text("搜刮成功！")
+                Text("搜刮成功！".localized)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(ApocalypseTheme.textPrimary)
@@ -226,15 +226,15 @@ struct ScavengeResultView: View {
     private func rarityDisplayName(_ rarity: String) -> String {
         switch rarity.lowercased() {
         case "common":
-            return "普通"
+            return "稀有度.普通".localized
         case "uncommon":
-            return "优秀"
+            return "稀有度.优秀".localized
         case "rare":
-            return "稀有"
+            return "稀有度.稀有".localized
         case "epic":
-            return "史诗"
+            return "稀有度.史诗".localized
         case "legendary":
-            return "传奇"
+            return "稀有度.传奇".localized
         default:
             return rarity
         }

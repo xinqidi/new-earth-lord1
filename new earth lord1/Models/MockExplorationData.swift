@@ -44,10 +44,10 @@ enum DangerLevel: Int, CaseIterable {
     /// 显示名称
     var displayName: String {
         switch self {
-        case .low: return "低危"
-        case .medium: return "中危"
-        case .high: return "高危"
-        case .extreme: return "极危"
+        case .low: return "危险等级.低危".localized
+        case .medium: return "危险等级.中危".localized
+        case .high: return "危险等级.高危".localized
+        case .extreme: return "危险等级.极危".localized
         }
     }
 

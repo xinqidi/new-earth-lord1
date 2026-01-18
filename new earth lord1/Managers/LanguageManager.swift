@@ -36,13 +36,11 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     func displayName(languageManager: LanguageManager) -> String {
         switch self {
         case .system:
-            // "跟随系统"需要本地化
             return languageManager.localizedString("跟随系统")
         case .chinese:
-            // 语言名称固定显示为原生文字，方便用户识别
-            return "简体中文"
+            return languageManager.localizedString("简体中文")
         case .english:
-            return "English"
+            return languageManager.localizedString("英语")
         }
     }
 

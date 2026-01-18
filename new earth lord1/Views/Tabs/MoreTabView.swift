@@ -37,36 +37,19 @@ struct MoreTabView: View {
 
                     Spacer()
 
-                    // 功能列表
+                    // 占位文本
                     VStack(spacing: 16) {
-                        // 开发测试按钮
-                        NavigationLink(destination: TestMenuView().environmentObject(explorationManager)) {
-                            HStack {
-                                Image(systemName: "hammer.fill")
-                                    .font(.title2)
-                                    .foregroundColor(ApocalypseTheme.primary)
-                                    .frame(width: 40)
+                        Image(systemName: "gearshape.2")
+                            .font(.system(size: 60))
+                            .foregroundColor(ApocalypseTheme.textMuted)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("开发测试")
-                                        .font(.headline)
-                                        .foregroundColor(ApocalypseTheme.textPrimary)
+                        Text("敬请期待...".localized)
+                            .font(.headline)
+                            .foregroundColor(ApocalypseTheme.textSecondary)
 
-                                    Text("测试功能和调试工具")
-                                        .font(.caption)
-                                        .foregroundColor(ApocalypseTheme.textSecondary)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(ApocalypseTheme.textMuted)
-                            }
-                            .padding()
-                            .background(ApocalypseTheme.cardBackground)
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        Text("更多功能正在开发中".localized)
+                            .font(.caption)
+                            .foregroundColor(ApocalypseTheme.textMuted)
                     }
                     .padding(.horizontal)
 

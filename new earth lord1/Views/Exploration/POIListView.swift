@@ -7,8 +7,13 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct POIListView: View {
+
+    // MARK: - Environment Objects
+
+    @EnvironmentObject private var locationManager: LocationManager
 
     // MARK: - State Properties
 
@@ -19,7 +24,7 @@ struct POIListView: View {
     @State private var selectedCategory: POIType? = nil
 
     /// 所有POI数据
-    @State private var allPOIs: [POI] = MockExplorationData.mockPOIs
+    @State private var allPOIs: [POI] = []
 
     /// 搜索按钮缩放
     @State private var searchButtonScale: CGFloat = 1.0
@@ -27,8 +32,20 @@ struct POIListView: View {
     /// 列表加载完成标志
     @State private var listLoaded = false
 
-    /// 假GPS坐标
-    private let mockGPSCoordinate = "22.54, 114.06"
+    /// 显示距离不足提示
+    @State private var showDistanceAlert = false
+
+    /// 距离不足的POI
+    @State private var tooFarPOI: POI?
+
+    /// 选中的POI（用于导航）
+    @State private var selectedPOI: POI?
+
+    /// 显示POI详情
+    @State private var showPOIDetail = false
+
+    /// POI搜刮距离阈值（米）
+    private let scavengeDistanceThreshold: Double = 50.0
 
     // MARK: - Computed Properties
 
@@ -72,8 +89,24 @@ struct POIListView: View {
                 poiList
             }
         }
-        .navigationTitle("附近探索")
+        .navigationTitle("附近探索".localized)
         .navigationBarTitleDisplayMode(.inline)
+        .alert("距离不足".localized, isPresented: $showDistanceAlert) {
+            Button("确定".localized, role: .cancel) { }
+        } message: {
+            if let poi = tooFarPOI {
+                Text(String(format: "距%@还差 %lldm".localized, poi.name, Int64(poi.distance - scavengeDistanceThreshold)))
+            }
+        }
+        .background(
+            NavigationLink(
+                destination: selectedPOI.map { POIDetailView(poi: $0) },
+                isActive: $showPOIDetail
+            ) {
+                EmptyView()
+            }
+            .hidden()
+        )
     }
 
     // MARK: - 状态栏
@@ -86,9 +119,15 @@ struct POIListView: View {
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.info)
 
-                Text("GPS: \(mockGPSCoordinate)")
-                    .font(.caption)
-                    .foregroundColor(ApocalypseTheme.textSecondary)
+                if let location = locationManager.currentFullLocation {
+                    Text(String(format: "GPS: %.2f, %.2f".localized, location.coordinate.latitude, location.coordinate.longitude))
+                        .font(.caption)
+                        .foregroundColor(ApocalypseTheme.textSecondary)
+                } else {
+                    Text("GPS: --")
+                        .font(.caption)
+                        .foregroundColor(ApocalypseTheme.textSecondary)
+                }
 
                 Spacer()
             }
@@ -99,7 +138,7 @@ struct POIListView: View {
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.success)
 
-                Text("附近发现 \(discoveredCount) 个地点")
+                Text(String(format: "附近发现 %lld 个地点".localized, allPOIs.count))
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -132,7 +171,7 @@ struct POIListView: View {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
 
-                    Text("搜索中...")
+                    Text("搜索中...".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                 } else {
@@ -140,7 +179,7 @@ struct POIListView: View {
                         .font(.headline)
                         .foregroundColor(.white)
 
-                    Text("搜索附近POI")
+                    Text("搜索附近POI".localized)
                         .font(.headline)
                         .foregroundColor(.white)
                 }
@@ -167,14 +206,14 @@ struct POIListView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 // "全部"按钮
-                filterButton(title: "全部", icon: "square.grid.2x2.fill", category: nil)
+                filterButton(title: "全部".localized, icon: "square.grid.2x2.fill", category: nil)
 
                 // 各分类按钮
-                filterButton(title: "医院", icon: "cross.case.fill", category: .hospital)
-                filterButton(title: "超市", icon: "cart.fill", category: .supermarket)
-                filterButton(title: "工厂", icon: "building.2.fill", category: .factory)
-                filterButton(title: "药店", icon: "pills.fill", category: .pharmacy)
-                filterButton(title: "加油站", icon: "fuelpump.fill", category: .gasStation)
+                filterButton(title: "医院".localized, icon: "cross.case.fill", category: .hospital)
+                filterButton(title: "超市".localized, icon: "cart.fill", category: .supermarket)
+                filterButton(title: "工厂".localized, icon: "building.2.fill", category: .factory)
+                filterButton(title: "药店".localized, icon: "pills.fill", category: .pharmacy)
+                filterButton(title: "加油站".localized, icon: "fuelpump.fill", category: .gasStation)
             }
             .padding(.horizontal)
         }
@@ -221,7 +260,9 @@ struct POIListView: View {
                     emptyState
                 } else {
                     ForEach(Array(filteredPOIs.enumerated()), id: \.element.id) { index, poi in
-                        NavigationLink(destination: POIDetailView(poi: poi)) {
+                        Button(action: {
+                            handlePOITap(poi)
+                        }) {
                             POICardView(poi: poi)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -254,12 +295,12 @@ struct POIListView: View {
                 .foregroundColor(ApocalypseTheme.textMuted)
 
             // 主标题
-            Text(allPOIs.isEmpty ? "附近暂无兴趣点" : "没有找到该类型的地点")
+            Text(allPOIs.isEmpty ? "附近暂无兴趣点".localized : "没有找到该类型的地点".localized)
                 .font(.headline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
             // 副标题
-            Text(allPOIs.isEmpty ? "点击搜索按钮发现周围的废墟" : "尝试搜索或切换其他分类")
+            Text(allPOIs.isEmpty ? "点击搜索按钮发现周围的废墟".localized : "尝试搜索或切换其他分类".localized)
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textMuted)
         }
@@ -271,12 +312,39 @@ struct POIListView: View {
 
     /// 执行搜索
     private func performSearch() {
+        guard let currentLocation = locationManager.currentFullLocation else {
+            print("❌ [POI搜索] 无法获取当前位置")
+            return
+        }
+
         isSearching = true
 
-        // 模拟网络请求（1.5秒）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isSearching = false
-            print("🔍 [POI搜索] 搜索完成")
+        Task {
+            // 调用POISearchManager搜索真实POI
+            let pois = await POISearchManager.shared.searchNearbyPOIs(center: currentLocation.coordinate)
+
+            await MainActor.run {
+                self.allPOIs = pois
+                self.isSearching = false
+                self.listLoaded = true
+                print("✅ [POI搜索] 搜索完成，找到 \(pois.count) 个POI")
+            }
+        }
+    }
+
+    /// 处理POI点击
+    private func handlePOITap(_ poi: POI) {
+        // 检查距离
+        if poi.distance <= scavengeDistanceThreshold {
+            // 距离足够，可以进入详情页
+            selectedPOI = poi
+            showPOIDetail = true
+            print("✅ [POI] 距离足够(\(String(format: "%.1f", poi.distance))m)，进入详情页: \(poi.name)")
+        } else {
+            // 距离不足，显示提示
+            tooFarPOI = poi
+            showDistanceAlert = true
+            print("⚠️ [POI] 距离不足(\(String(format: "%.1f", poi.distance))m > \(scavengeDistanceThreshold)m)，无法搜刮: \(poi.name)")
         }
     }
 }
