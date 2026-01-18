@@ -127,7 +127,8 @@ class LocationManager: NSObject, ObservableObject {
         // 配置定位管理器
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation // 导航级精度（使用传感器融合）
-        locationManager.distanceFilter = kCLDistanceFilterNone // 接收所有位置更新（由我们的过滤器处理）
+        locationManager.distanceFilter = 3.0 // 最小移动3米才更新（过滤微小抖动）
+        locationManager.activityType = .fitness // 步行/跑步优化
 
         // 获取当前授权状态
         authorizationStatus = locationManager.authorizationStatus
@@ -824,17 +825,47 @@ extension LocationManager: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
 
-        // 更新当前位置（供 Timer 采点使用）
+        // ⚠️ 步骤1：精度过滤（iOS最佳实践）
+        // horizontalAccuracy > 50m 表示GPS信号差，定位不可靠
+        // horizontalAccuracy < 0 表示无效位置
+        guard location.horizontalAccuracy > 0 && location.horizontalAccuracy <= 50 else {
+            print("⚠️ [定位管理] GPS精度差 (\(location.horizontalAccuracy)m)，忽略此次更新")
+            return
+        }
+
+        // ⚠️ 步骤2：时间戳验证（拒绝旧数据）
+        let locationAge = -location.timestamp.timeIntervalSinceNow
+        guard locationAge < 5.0 else {
+            print("⚠️ [定位管理] 位置数据过旧 (\(String(format: "%.1f", locationAge))秒)，忽略此次更新")
+            return
+        }
+
+        // ⚠️ 步骤3：速度异常检测（防止GPS跳跃）
+        if let lastLocation = currentFullLocation {
+            let distance = location.distance(from: lastLocation)
+            let timeDelta = location.timestamp.timeIntervalSince(lastLocation.timestamp)
+
+            if timeDelta > 0 {
+                let speed = distance / timeDelta // m/s
+                // 如果速度超过50m/s (180km/h)，明显异常
+                if speed > 50 {
+                    print("⚠️ [定位管理] 位置跳跃检测: 距离\(String(format: "%.1f", distance))m, 速度\(String(format: "%.1f", speed))m/s，忽略此次更新")
+                    return
+                }
+            }
+        }
+
+        // ✅ 步骤4：更新当前位置（供 Timer 采点使用）
         currentLocation = location
 
-        // 更新用户位置
+        // ✅ 步骤5：更新用户位置
         DispatchQueue.main.async {
             self.userLocation = location.coordinate
             self.currentFullLocation = location  // 发布完整位置供探索功能使用
             self.locationError = nil
         }
 
-        print("📍 [定位管理] 位置更新: 纬度 \(location.coordinate.latitude), 经度 \(location.coordinate.longitude)")
+        print("📍 [定位管理] 位置更新: 纬度 \(location.coordinate.latitude), 经度 \(location.coordinate.longitude), 精度 \(String(format: "%.1f", location.horizontalAccuracy))m")
     }
 
     /// 定位失败时调用

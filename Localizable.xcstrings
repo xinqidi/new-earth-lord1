@@ -632,6 +632,23 @@
         }
       }
     },
+    "切换其他分类查看" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to other categories"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换其他分类查看"
+          }
+        }
+      }
+    },
     "删除中..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1442,6 +1459,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始圈地追踪后，这里将显示调试信息"
+          }
+        }
+      }
+    },
+    "开始探索以发现周围的废墟" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start exploring to discover surrounding ruins"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始探索以发现周围的废墟"
           }
         }
       }

@@ -677,7 +677,47 @@ class ExplorationManager: ObservableObject {
 
         for item in items {
             do {
-                // 先检查是否已有该物品
+                // ⚠️ 步骤1：确保物品定义存在（AI生成的物品需要动态创建定义）
+                struct ItemDefinition: Codable {
+                    let id: String
+                }
+
+                let existingDefinitions: [ItemDefinition] = try await supabase
+                    .from("item_definitions")
+                    .select("id")
+                    .eq("id", value: item.itemId)
+                    .execute()
+                    .value
+
+                if existingDefinitions.isEmpty {
+                    // 物品定义不存在，创建新定义
+                    struct NewItemDefinition: Encodable {
+                        let id: String
+                        let name: String
+                        let category: String
+                        let rarity: String
+                        let icon: String
+                        let description: String?
+                        let weight: Int
+                    }
+
+                    try await supabase
+                        .from("item_definitions")
+                        .insert(NewItemDefinition(
+                            id: item.itemId,
+                            name: item.name,
+                            category: item.category,
+                            rarity: item.rarity,
+                            icon: item.icon,
+                            description: item.story, // 物品故事作为描述
+                            weight: 1
+                        ))
+                        .execute()
+
+                    print("✅ [背包] 创建物品定义: \(item.name) [\(item.itemId)]")
+                }
+
+                // ⚠️ 步骤2：添加或更新背包物品
                 struct InventoryItem: Codable {
                     let id: UUID
                     let user_id: UUID
@@ -704,6 +744,8 @@ class ExplorationManager: ObservableObject {
                         .update(QuantityUpdate(quantity: existing.quantity + item.quantity))
                         .eq("id", value: existing.id.uuidString)
                         .execute()
+
+                    print("✅ [背包] 更新物品数量: \(item.name) +\(item.quantity)")
                 } else {
                     // 新增物品
                     struct NewInventoryItem: Encodable {
@@ -720,6 +762,8 @@ class ExplorationManager: ObservableObject {
                             quantity: item.quantity
                         ))
                         .execute()
+
+                    print("✅ [背包] 添加新物品: \(item.name) x\(item.quantity)")
                 }
             } catch {
                 print("❌ [背包] 添加物品失败: \(error.localizedDescription)")

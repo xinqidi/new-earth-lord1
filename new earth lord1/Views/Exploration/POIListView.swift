@@ -14,20 +14,12 @@ struct POIListView: View {
     // MARK: - Environment Objects
 
     @EnvironmentObject private var locationManager: LocationManager
+    @EnvironmentObject private var explorationManager: ExplorationManager
 
     // MARK: - State Properties
 
-    /// 是否正在搜索
-    @State private var isSearching = false
-
     /// 当前选中的分类（nil表示"全部"）
     @State private var selectedCategory: POIType? = nil
-
-    /// 所有POI数据
-    @State private var allPOIs: [POI] = []
-
-    /// 搜索按钮缩放
-    @State private var searchButtonScale: CGFloat = 1.0
 
     /// 列表加载完成标志
     @State private var listLoaded = false
@@ -52,14 +44,14 @@ struct POIListView: View {
     /// 筛选后的POI列表
     private var filteredPOIs: [POI] {
         if let category = selectedCategory {
-            return allPOIs.filter { $0.type == category }
+            return explorationManager.nearbyPOIs.filter { $0.type == category }
         }
-        return allPOIs
+        return explorationManager.nearbyPOIs
     }
 
     /// 发现的POI数量
     private var discoveredCount: Int {
-        return allPOIs.filter { $0.status == .discovered || $0.status == .looted }.count
+        return explorationManager.nearbyPOIs.filter { $0.status == .discovered || $0.status == .looted }.count
     }
 
     // MARK: - Body
@@ -75,11 +67,6 @@ struct POIListView: View {
                 statusBar
                     .padding(.horizontal)
                     .padding(.vertical, 12)
-
-                // 搜索按钮
-                searchButton
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
 
                 // 筛选工具栏
                 filterToolbar
@@ -138,7 +125,7 @@ struct POIListView: View {
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.success)
 
-                Text(String(format: "附近发现 %lld 个地点".localized, allPOIs.count))
+                Text(String(format: "附近发现 %lld 个地点".localized, explorationManager.nearbyPOIs.count))
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -148,56 +135,6 @@ struct POIListView: View {
         .padding()
         .background(ApocalypseTheme.cardBackground)
         .cornerRadius(12)
-    }
-
-    // MARK: - 搜索按钮
-
-    private var searchButton: some View {
-        Button(action: {
-            // 按钮点击缩放动画
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                searchButtonScale = 0.95
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    searchButtonScale = 1.0
-                }
-            }
-            performSearch()
-        }) {
-            HStack {
-                if isSearching {
-                    // 加载动画
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-
-                    Text("搜索中...".localized)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                } else {
-                    Image(systemName: "magnifyingglass")
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text("搜索附近POI".localized)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [ApocalypseTheme.primary, ApocalypseTheme.primaryDark]),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .cornerRadius(12)
-            .shadow(color: ApocalypseTheme.primary.opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .scaleEffect(searchButtonScale)
-        .disabled(isSearching)
     }
 
     // MARK: - 筛选工具栏
@@ -290,17 +227,17 @@ struct POIListView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             // 图标
-            Image(systemName: allPOIs.isEmpty ? "map" : "mappin.slash")
+            Image(systemName: explorationManager.nearbyPOIs.isEmpty ? "map" : "mappin.slash")
                 .font(.system(size: 60))
                 .foregroundColor(ApocalypseTheme.textMuted)
 
             // 主标题
-            Text(allPOIs.isEmpty ? "附近暂无兴趣点".localized : "没有找到该类型的地点".localized)
+            Text(explorationManager.nearbyPOIs.isEmpty ? "附近暂无兴趣点".localized : "没有找到该类型的地点".localized)
                 .font(.headline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
 
             // 副标题
-            Text(allPOIs.isEmpty ? "点击搜索按钮发现周围的废墟".localized : "尝试搜索或切换其他分类".localized)
+            Text(explorationManager.nearbyPOIs.isEmpty ? "开始探索以发现周围的废墟".localized : "切换其他分类查看".localized)
                 .font(.caption)
                 .foregroundColor(ApocalypseTheme.textMuted)
         }
@@ -309,28 +246,6 @@ struct POIListView: View {
     }
 
     // MARK: - Actions
-
-    /// 执行搜索
-    private func performSearch() {
-        guard let currentLocation = locationManager.currentFullLocation else {
-            print("❌ [POI搜索] 无法获取当前位置")
-            return
-        }
-
-        isSearching = true
-
-        Task {
-            // 调用POISearchManager搜索真实POI
-            let pois = await POISearchManager.shared.searchNearbyPOIs(center: currentLocation.coordinate)
-
-            await MainActor.run {
-                self.allPOIs = pois
-                self.isSearching = false
-                self.listLoaded = true
-                print("✅ [POI搜索] 搜索完成，找到 \(pois.count) 个POI")
-            }
-        }
-    }
 
     /// 处理POI点击
     private func handlePOITap(_ poi: POI) {
