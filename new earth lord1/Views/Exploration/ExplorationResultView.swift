@@ -77,7 +77,7 @@ struct ExplorationResultView: View {
                     }
                 }
             }
-            .navigationTitle(result.hasFailed ? "探索失败" : "探索完成")
+            .navigationTitle(result.hasFailed ? "探索失败".localized : "探索完成".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -171,7 +171,7 @@ struct ExplorationResultView: View {
             .shadow(color: ApocalypseTheme.primary.opacity(0.3), radius: 15, x: 0, y: 8)
 
             // 标题文字
-            Text("探索完成！")
+            Text("探索完成！".localized)
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(ApocalypseTheme.textPrimary)
         }
@@ -261,7 +261,7 @@ struct ExplorationResultView: View {
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.primary)
 
-                Text("探索统计")
+                Text("探索统计".localized)
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
@@ -284,7 +284,7 @@ struct ExplorationResultView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("本次行走")
+                    Text("本次行走".localized)
                         .font(.caption)
                         .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -313,7 +313,7 @@ struct ExplorationResultView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("探索时长")
+                    Text("探索时长".localized)
                         .font(.caption)
                         .foregroundColor(ApocalypseTheme.textSecondary)
 
@@ -342,14 +342,14 @@ struct ExplorationResultView: View {
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.primary)
 
-                Text("获得物品")
+                Text("获得物品".localized)
                     .font(.headline)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
                 Spacer()
 
                 // 物品数量
-                Text("\(result.items.count)种")
+                Text(String(format: "%d种".localized, result.items.count))
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.textSecondary)
                     .padding(.horizontal, 8)
@@ -379,7 +379,7 @@ struct ExplorationResultView: View {
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.success)
 
-                Text("已添加到背包")
+                Text("已添加到背包".localized)
                     .font(.caption)
                     .foregroundColor(ApocalypseTheme.success)
 
@@ -461,7 +461,7 @@ struct ExplorationResultView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.headline)
 
-                Text("确认")
+                Text("确认".localized)
                     .font(.headline)
                     .fontWeight(.semibold)
             }
@@ -499,12 +499,12 @@ struct ExplorationResultView: View {
 
             // 错误信息
             VStack(spacing: 12) {
-                Text("探索失败")
+                Text("探索失败".localized)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(ApocalypseTheme.textPrimary)
 
-                Text(result.failureReason ?? "速度过快，探索中断")
+                Text(result.failureReason ?? "速度过快，探索中断".localized)
                     .font(.body)
                     .foregroundColor(ApocalypseTheme.textSecondary)
                     .multilineTextAlignment(.center)
@@ -519,7 +519,7 @@ struct ExplorationResultView: View {
                     Image(systemName: "arrow.left.circle.fill")
                         .font(.headline)
 
-                    Text("返回")
+                    Text("返回".localized)
                         .font(.headline)
                         .fontWeight(.semibold)
                 }
@@ -540,9 +540,9 @@ struct ExplorationResultView: View {
     /// 格式化距离
     private func formatDistance(_ meters: Double) -> String {
         if meters >= 1000 {
-            return String(format: "%.2f 公里", meters / 1000)
+            return String(format: "%.2f 公里".localized, meters / 1000)
         } else {
-            return String(format: "%.0f 米", meters)
+            return String(format: "%.0f 米".localized, meters)
         }
     }
 
@@ -551,9 +551,9 @@ struct ExplorationResultView: View {
         let minutes = seconds / 60
         let secs = seconds % 60
         if minutes > 0 {
-            return "\(minutes)分\(secs)秒"
+            return String(format: "%d分%d秒".localized, minutes, secs)
         } else {
-            return "\(secs)秒"
+            return String(format: "%d秒".localized, secs)
         }
     }
 
@@ -578,11 +578,11 @@ struct ExplorationResultView: View {
     /// 分类显示名称
     private func categoryDisplayName(_ category: String) -> String {
         switch category {
-        case "water": return "水类"
-        case "food": return "食物"
-        case "medical": return "医疗"
-        case "material": return "材料"
-        case "tool": return "工具"
+        case "water": return "水类".localized
+        case "food": return "食物".localized
+        case "medical": return "医疗".localized
+        case "material": return "材料".localized
+        case "tool": return "工具".localized
         default: return category
         }
     }
@@ -604,9 +604,9 @@ struct ExplorationResultView: View {
     /// 稀有度显示名称
     private func rarityDisplayName(_ rarity: String) -> String {
         switch rarity {
-        case "common": return "普通"
-        case "rare": return "稀有"
-        case "epic": return "史诗"
+        case "common": return "普通".localized
+        case "rare": return "稀有".localized
+        case "epic": return "史诗".localized
         default: return rarity
         }
     }

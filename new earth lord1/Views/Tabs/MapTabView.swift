@@ -504,9 +504,9 @@ struct MapTabView: View {
             }
         } message: {
             if explorationManager.currentDistance < 200 {
-                Text("当前行走距离 \(Int(explorationManager.currentDistance)) 米，不足 200 米将无法获得奖励。确定要结束探索吗？")
+                Text(String(format: "当前行走距离 %d 米，不足 200 米将无法获得奖励。确定要结束探索吗？".localized, Int(explorationManager.currentDistance)))
             } else {
-                Text("当前已行走 \(Int(explorationManager.currentDistance)) 米，等级：\(explorationManager.currentTier.displayName)。确定要结束探索吗？")
+                Text(String(format: "当前已行走 %d 米，等级：%@。确定要结束探索吗？".localized, Int(explorationManager.currentDistance), explorationManager.currentTier.displayName))
             }
         }
         .onReceive(explorationManager.$showResult) { showResult in
@@ -602,7 +602,7 @@ struct MapTabView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "binoculars.fill")
                             .font(.system(size: 14))
-                        Text("探索中")
+                        Text("探索中".localized)
                             .font(.system(size: 14, weight: .semibold))
                     }
 
@@ -636,7 +636,7 @@ struct MapTabView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "target")
                                 .font(.system(size: 12))
-                            Text("距\(nextTier.displayName)还差 \(Int(explorationManager.distanceToNextTier))m")
+                            Text(String(format: "距%@还差 %dm".localized, nextTier.displayName, Int(explorationManager.distanceToNextTier)))
                                 .font(.system(size: 12))
                         }
                         .foregroundColor(.white.opacity(0.8))
@@ -645,7 +645,7 @@ struct MapTabView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "diamond.fill")
                                 .font(.system(size: 12))
-                            Text("已达最高等级：\(explorationManager.currentTier.displayName)")
+                            Text(String(format: "已达最高等级：%@".localized, explorationManager.currentTier.displayName))
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundColor(.yellow)
@@ -657,7 +657,7 @@ struct MapTabView: View {
                     Button(action: {
                         showStopExplorationConfirm = true
                     }) {
-                        Text("结束探索")
+                        Text("结束探索".localized)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -691,7 +691,7 @@ struct MapTabView: View {
                     .font(.system(size: 20))
 
                 if let countdown = countdown {
-                    Text("速度过快！请在 \(countdown) 秒内降速，否则探索失败")
+                    Text(String(format: "速度过快！请在 %d 秒内降速，否则探索失败".localized, countdown))
                         .font(.system(size: 14, weight: .bold))
                 } else {
                     Text(message)

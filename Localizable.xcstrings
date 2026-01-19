@@ -50,6 +50,40 @@
         }
       }
     },
+    "%.0f 米" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.0f m"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.0f 米"
+          }
+        }
+      }
+    },
+    "%.2f 公里" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.2f km"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.2f 公里"
+          }
+        }
+      }
+    },
     "%@%lld / %lld" : {
       "localizations" : {
         "en" : {
@@ -62,6 +96,57 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@%2$lld / %3$lld"
+          }
+        }
+      }
+    },
+    "%d分%d秒" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$dm %2$ds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d分%d秒"
+          }
+        }
+      }
+    },
+    "%d种" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d types"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d种"
+          }
+        }
+      }
+    },
+    "%d秒" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%ds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d秒"
           }
         }
       }
@@ -115,6 +200,7 @@
       }
     },
     "%lld种" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1299,6 +1385,7 @@
       }
     },
     "已添加到背包" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1365,6 +1452,7 @@
       }
     },
     "已达最高等级：%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1514,6 +1602,7 @@
       }
     },
     "当前已行走 %lld 米，等级：%@。确定要结束探索吗？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1547,6 +1636,7 @@
       }
     },
     "当前行走距离 %lld 米，不足 200 米将无法获得奖励。确定要结束探索吗？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1681,6 +1771,7 @@
       }
     },
     "探索中" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1747,6 +1838,7 @@
       }
     },
     "探索失败" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1763,6 +1855,7 @@
       }
     },
     "探索完成" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1779,6 +1872,7 @@
       }
     },
     "探索完成！" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1811,6 +1905,7 @@
       }
     },
     "探索时长" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1843,6 +1938,7 @@
       }
     },
     "探索统计" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1971,6 +2067,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新密码"
+          }
+        }
+      }
+    },
+    "无奖励" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Rewards"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无奖励"
           }
         }
       }
@@ -2123,6 +2236,7 @@
       }
     },
     "本次行走" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2300,6 +2414,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "水"
+          }
+        }
+      }
+    },
+    "水类" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水类"
           }
         }
       }
@@ -3220,6 +3351,7 @@
       }
     },
     "距%@还差 %lldm" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3319,6 +3451,7 @@
       }
     },
     "返回" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3485,7 +3618,25 @@
         }
       }
     },
+    "速度过快，探索中断" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed too fast, exploration interrupted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度过快，探索中断"
+          }
+        }
+      }
+    },
     "速度过快！请在 %lld 秒内降速，否则探索失败" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3612,6 +3763,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重试"
+          }
+        }
+      }
+    },
+    "金级" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金级"
+          }
+        }
+      }
+    },
+    "钻石级" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diamond"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钻石级"
+          }
+        }
+      }
+    },
+    "铜级" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bronze"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "铜级"
+          }
+        }
+      }
+    },
+    "银级" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Silver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "银级"
           }
         }
       }

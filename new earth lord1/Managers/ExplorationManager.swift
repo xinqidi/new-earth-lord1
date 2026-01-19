@@ -22,11 +22,11 @@ enum RewardTier: String, CaseIterable {
     /// 等级显示名称
     var displayName: String {
         switch self {
-        case .none: return "无奖励"
-        case .bronze: return "铜级"
-        case .silver: return "银级"
-        case .gold: return "金级"
-        case .diamond: return "钻石级"
+        case .none: return "无奖励".localized
+        case .bronze: return "铜级".localized
+        case .silver: return "银级".localized
+        case .gold: return "金级".localized
+        case .diamond: return "钻石级".localized
         }
     }
 
