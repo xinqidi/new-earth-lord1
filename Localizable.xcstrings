@@ -216,6 +216,9 @@
         }
       }
     },
+    "© 2026 Xiong Haibo" : {
+
+    },
     "|" : {
       "localizations" : {
         "en" : {
@@ -312,6 +315,9 @@
         }
       }
     },
+    "1.0.0" : {
+
+    },
     "Earth Lord" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -342,6 +348,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "EARTH LORD"
+          }
+        }
+      }
+    },
+    "Earth Lord · 地球新主" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earth Lord"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地球新主"
           }
         }
       }
@@ -510,6 +533,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "个人资料和账户信息"
+          }
+        }
+      }
+    },
+    "了解我们如何保护您的隐私" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Learn how we protect your privacy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "了解我们如何保护您的隐私"
           }
         }
       }
@@ -697,6 +737,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关于"
+          }
+        }
+      }
+    },
+    "关于应用" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About App"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于应用"
           }
         }
       }
@@ -1485,6 +1542,23 @@
         }
       }
     },
+    "帮助与支持" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help & Support"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "帮助与支持"
+          }
+        }
+      }
+    },
     "幸存者档案" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1635,6 +1709,23 @@
         }
       }
     },
+    "当前版本信息" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current version information"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前版本信息"
+          }
+        }
+      }
+    },
     "当前行走距离 %lld 米，不足 200 米将无法获得奖励。确定要结束探索吗？" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1749,6 +1840,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "找回密码"
+          }
+        }
+      }
+    },
+    "技术支持" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technical Support"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技术支持"
           }
         }
       }
@@ -2618,6 +2726,40 @@
         }
       }
     },
+    "版本" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本"
+          }
+        }
+      }
+    },
+    "版权" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copyright"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版权"
+          }
+        }
+      }
+    },
     "登录" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3098,6 +3240,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "药店"
+          }
+        }
+      }
+    },
+    "获取帮助和常见问题解答" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get help and FAQ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取帮助和常见问题解答"
           }
         }
       }
@@ -3882,6 +4041,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "附近暂无兴趣点"
+          }
+        }
+      }
+    },
+    "隐私政策" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
           }
         }
       }

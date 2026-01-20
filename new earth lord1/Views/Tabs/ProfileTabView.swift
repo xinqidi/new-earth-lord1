@@ -33,7 +33,8 @@ struct ProfileTabView: View {
     @State private var deleteAccountError: String?
 
     var body: some View {
-        ScrollView {
+        NavigationStack {
+            ScrollView {
             VStack(spacing: 0) {
                 // 顶部标题
                 Text("幸存者档案".localized)
@@ -154,9 +155,7 @@ struct ProfileTabView: View {
                 // 设置选项组（缩小间距）
                 VStack(spacing: 0) {
                     // 设置
-                    Button(action: {
-                        // TODO: 跳转到设置页
-                    }) {
+                    NavigationLink(destination: SettingsView()) {
                         HStack(spacing: 12) {
                             Image(systemName: "gearshape.fill")
                                 .font(.body)
@@ -338,8 +337,9 @@ struct ProfileTabView: View {
             }
             // VStack 整体底部留白，为 TabBar 预留足够空间
             .padding(.bottom, 120)
+            }
+            .background(ApocalypseTheme.background.ignoresSafeArea())
         }
-        .background(ApocalypseTheme.background.ignoresSafeArea())
         .alert("退出登录".localized, isPresented: $showingSignOutConfirm) {
             Button("取消".localized, role: .cancel) {}
             Button("退出".localized, role: .destructive) {
