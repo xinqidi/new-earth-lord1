@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - 认证页面
 
-/// 《地球新主》游戏认证页面
+/// 《行走的领主》游戏认证页面
 /// 包含登录、注册、找回密码功能
 struct AuthView: View {
 
@@ -166,11 +166,11 @@ struct AuthView: View {
             }
 
             // 游戏标题
-            Text("地球新主".localized)
+            Text("行走的领主".localized)
                 .font(.system(size: 36, weight: .bold))
                 .foregroundColor(ApocalypseTheme.textPrimary)
 
-            Text("Earth Lord".localized)
+            Text("Walking Lord".localized)
                 .font(.subheadline)
                 .foregroundColor(ApocalypseTheme.textSecondary)
         }

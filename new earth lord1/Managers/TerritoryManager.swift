@@ -344,7 +344,7 @@ class TerritoryManager {
                     let boundaryEnd = polygon[(j + 1) % polygon.count]
 
                     if segmentsIntersect(p1: pathStart, p2: pathEnd, p3: boundaryStart, p4: boundaryEnd) {
-                        let message = isOwnTerritory ? "轨迹不能穿越自己已有的领地！" : "轨迹不能穿越他人领地！"
+                        let message = isOwnTerritory ? "轨迹不能穿越自己已有的领地！".localized : "轨迹不能穿越他人领地！".localized
                         TerritoryLogger.shared.log("路径碰撞：轨迹穿越\(isOwnTerritory ? "自己的" : "他人")领地边界", type: .error)
                         return CollisionResult(
                             hasCollision: true,
@@ -358,7 +358,7 @@ class TerritoryManager {
 
                 // 检查路径点是否在领地内
                 if isPointInPolygon(point: pathEnd, polygon: polygon) {
-                    let message = isOwnTerritory ? "轨迹不能进入自己已有的领地！" : "轨迹不能进入他人领地！"
+                    let message = isOwnTerritory ? "轨迹不能进入自己已有的领地！".localized : "轨迹不能进入他人领地！".localized
                     TerritoryLogger.shared.log("路径碰撞：轨迹点进入\(isOwnTerritory ? "自己的" : "他人")领地", type: .error)
                     return CollisionResult(
                         hasCollision: true,
@@ -445,13 +445,13 @@ class TerritoryManager {
             message = nil
         } else if minDistance > 50 {
             warningLevel = .caution
-            message = "注意：距离\(territoryType) \(Int(minDistance))m"
+            message = String(format: "注意：距离%@ %dm".localized, territoryType, Int(minDistance))
         } else if minDistance > 25 {
             warningLevel = .warning
-            message = "警告：正在靠近\(territoryType)（\(Int(minDistance))m）"
+            message = String(format: "警告：正在靠近%@（%dm）".localized, territoryType, Int(minDistance))
         } else {
             warningLevel = .danger
-            message = "危险：即将进入\(territoryType)！（\(Int(minDistance))m）"
+            message = String(format: "危险：即将进入%@！（%dm）".localized, territoryType, Int(minDistance))
         }
 
         if warningLevel != .safe {

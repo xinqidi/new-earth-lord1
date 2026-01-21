@@ -78,7 +78,7 @@ struct User: Identifiable {
 
 // MARK: - 认证管理器
 
-/// 《地球新主》游戏认证管理器
+/// 《行走的领主》游戏认证管理器
 ///
 /// 认证流程说明：
 /// - 注册：发验证码 → 验证（此时已登录但没密码）→ 强制设置密码 → 完成
@@ -194,7 +194,7 @@ class AuthManager: ObservableObject {
                 isAuthenticated = false
                 currentUser = nil
                 needsPasswordSetup = false
-                errorMessage = "会话已过期，请重新登录"
+                errorMessage = "会话已过期，请重新登录".localized
             }
         }
     }
@@ -231,7 +231,7 @@ class AuthManager: ObservableObject {
                     shouldCreateUser: false
                 )
                 // 如果成功了，说明用户已存在
-                errorMessage = "该邮箱已注册，请使用登录功能"
+                errorMessage = "该邮箱已注册，请使用登录功能".localized
                 otpSent = false
                 isLoading = false
                 return
@@ -476,7 +476,7 @@ class AuthManager: ObservableObject {
         // 1. 配置 Apple Developer 账号
         // 2. 在 Supabase Dashboard 配置 Apple Provider
         // 3. 使用 AuthenticationServices 框架
-        errorMessage = "Apple 登录功能开发中..."
+        errorMessage = "Apple 登录功能开发中...".localized
     }
 
     /// Google 登录
@@ -492,7 +492,7 @@ class AuthManager: ObservableObject {
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let rootViewController = windowScene.windows.first?.rootViewController else {
                 print("❌ [Google登录] 无法获取根视图控制器")
-                errorMessage = "无法初始化 Google 登录"
+                errorMessage = "无法初始化 Google 登录".localized
                 isLoading = false
                 return
             }
@@ -512,7 +512,7 @@ class AuthManager: ObservableObject {
             // 4. 获取 ID Token
             guard let idToken = result.user.idToken?.tokenString else {
                 print("❌ [Google登录] 无法获取 ID Token")
-                errorMessage = "Google 登录失败：无法获取身份令牌"
+                errorMessage = "Google 登录失败：无法获取身份令牌".localized
                 isLoading = false
                 return
             }

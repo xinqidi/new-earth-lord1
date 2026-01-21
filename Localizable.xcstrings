@@ -33,19 +33,19 @@
         }
       }
     },
-    "《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。" : {
+    "《行走的领主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Earth Lord needs your location to show your coordinates in the apocalyptic world and help you explore and claim territories."
+            "value" : "Walking Lord needs your location to show your coordinates in the apocalyptic world and help you explore and claim territories."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。"
+            "value" : "《行走的领主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。"
           }
         }
       }
@@ -168,6 +168,7 @@
       }
     },
     "%lld 个点" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -318,53 +319,36 @@
     "1.0.0" : {
 
     },
-    "Earth Lord" : {
+    "Apple 登录功能开发中..." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Earth Lord"
+            "value" : "Apple login under development..."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Earth Lord"
+            "value" : "Apple 登录功能开发中..."
           }
         }
       }
     },
-    "EARTH LORD" : {
+    "Google 登录失败：无法获取身份令牌" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EARTH LORD"
+            "value" : "Google login failed: cannot get ID token"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EARTH LORD"
-          }
-        }
-      }
-    },
-    "Earth Lord · 地球新主" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Earth Lord"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "地球新主"
+            "value" : "Google 登录失败：无法获取身份令牌"
           }
         }
       }
@@ -433,6 +417,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Supabase 连接测试"
+          }
+        }
+      }
+    },
+    "Walking Lord" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walking Lord"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walking Lord"
+          }
+        }
+      }
+    },
+    "WALKING LORD" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WALKING LORD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WALKING LORD"
           }
         }
       }
@@ -622,6 +640,23 @@
         }
       }
     },
+    "会话已过期，请重新登录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session expired, please log in again"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会话已过期，请重新登录"
+          }
+        }
+      }
+    },
     "使用" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -686,6 +721,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用物品"
+          }
+        }
+      }
+    },
+    "使用物品失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to use item"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用物品失败"
           }
         }
       }
@@ -962,6 +1014,23 @@
         }
       }
     },
+    "危险：即将进入%@！（%dm）" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danger: about to enter %1$@! (%2$dm)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "危险：即将进入%@！（%dm）"
+          }
+        }
+      }
+    },
     "危险等级.中危" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1080,6 +1149,7 @@
       }
     },
     "取消" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1189,23 +1259,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "地图"
-          }
-        }
-      }
-    },
-    "地球新主" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Earth Lord"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "地球新主"
           }
         }
       }
@@ -1675,6 +1728,23 @@
         }
       }
     },
+    "当前已行走 %d 米，等级：%@。确定要结束探索吗？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have walked %1$d meters, level: %2$@. Are you sure to end exploration?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前已行走 %d 米，等级：%@。确定要结束探索吗？"
+          }
+        }
+      }
+    },
     "当前已行走 %lld 米，等级：%@。确定要结束探索吗？" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1722,6 +1792,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当前版本信息"
+          }
+        }
+      }
+    },
+    "当前行走距离 %d 米，不足 200 米将无法获得奖励。确定要结束探索吗？" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current walking distance is %d meters, less than 200 meters will not get rewards. Are you sure to end exploration?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前行走距离 %d 米，不足 200 米将无法获得奖励。确定要结束探索吗？"
           }
         }
       }
@@ -2196,6 +2283,23 @@
         }
       }
     },
+    "无法初始化 Google 登录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot initialize Google login"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法初始化 Google 登录"
+          }
+        }
+      }
+    },
     "日志: %lld/200" : {
       "localizations" : {
         "en" : {
@@ -2594,6 +2698,23 @@
         }
       }
     },
+    "注意：距离%@ %dm" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caution: %1$@ %2$dm away"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "注意：距离%@ %dm"
+          }
+        }
+      }
+    },
     "测试中..." : {
       "localizations" : {
         "en" : {
@@ -2912,6 +3033,7 @@
       }
     },
     "确认结束" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3094,7 +3216,25 @@
         }
       }
     },
+    "纬度: %.6f" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latitude: %.6f"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "纬度: %.6f"
+          }
+        }
+      }
+    },
     "纬度: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3110,7 +3250,25 @@
         }
       }
     },
+    "经度: %.6f" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Longitude: %.6f"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "经度: %.6f"
+          }
+        }
+      }
+    },
     "经度: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3127,6 +3285,7 @@
       }
     },
     "结束探索" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3277,6 +3436,40 @@
         }
       }
     },
+    "行走的领主" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walking Lord"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行走的领主"
+          }
+        }
+      }
+    },
+    "行走的领主 · Walking Lord" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walking Lord"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行走的领主"
+          }
+        }
+      }
+    },
     "设置" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3294,6 +3487,23 @@
         }
       }
     },
+    "该邮箱已注册，请使用登录功能" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email is already registered, please use login"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该邮箱已注册，请使用登录功能"
+          }
+        }
+      }
+    },
     "语言" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3307,6 +3517,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "语言"
+          }
+        }
+      }
+    },
+    "请先登录" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please log in first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先登录"
           }
         }
       }
@@ -3441,6 +3668,23 @@
         }
       }
     },
+    "警告：正在靠近%@（%dm）" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning: approaching %1$@ (%2$dm)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告：正在靠近%@（%dm）"
+          }
+        }
+      }
+    },
     "资源" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3505,6 +3749,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "超市"
+          }
+        }
+      }
+    },
+    "距%@还差 %dm" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still %2$dm away from %1$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "距%@还差 %dm"
           }
         }
       }
@@ -3588,6 +3849,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "轨迹不能穿越他人领地！" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path cannot cross others' territory!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轨迹不能穿越他人领地！"
+          }
+        }
+      }
+    },
+    "轨迹不能穿越自己已有的领地！" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path cannot cross your own territory!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轨迹不能穿越自己已有的领地！"
+          }
+        }
+      }
+    },
+    "轨迹不能进入他人领地！" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path cannot enter others' territory!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轨迹不能进入他人领地！"
+          }
+        }
+      }
+    },
+    "轨迹不能进入自己已有的领地！" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path cannot enter your own territory!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轨迹不能进入自己已有的领地！"
           }
         }
       }
@@ -3807,6 +4136,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "速度过快！请在 %lld 秒内降速，否则探索失败"
+          }
+        }
+      }
+    },
+    "速度过快（%.0f km/h）！请在 %d 秒内降速" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed too fast (%.0f km/h)! Slow down within %d seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度过快（%.0f km/h）！请在 %d 秒内降速"
           }
         }
       }

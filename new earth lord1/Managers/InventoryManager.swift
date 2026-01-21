@@ -148,7 +148,7 @@ class InventoryManager: ObservableObject {
         guard let supabase = supabase, let userId = userId else {
             print("❌ [背包] Supabase或用户ID未配置")
             await MainActor.run {
-                self.errorMessage = "请先登录"
+                self.errorMessage = "请先登录".localized
             }
             return
         }
@@ -321,7 +321,7 @@ class InventoryManager: ObservableObject {
         } catch {
             print("❌ [背包] 使用物品失败: \(error.localizedDescription)")
             await MainActor.run {
-                self.errorMessage = "使用物品失败"
+                self.errorMessage = "使用物品失败".localized
             }
         }
     }

@@ -250,7 +250,7 @@ struct TerritoryCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "point.3.connected.trianglepath.dotted")
                         .font(.caption)
-                    Text("\(territory.pointCount ?? 0) 个点")
+                    Text(String(format: "%lld 个点".localized, territory.pointCount ?? 0))
                         .font(.caption)
                 }
                 .foregroundColor(ApocalypseTheme.textSecondary)

@@ -131,7 +131,7 @@ struct SettingsView: View {
 
                     // App名称
                     VStack(spacing: 8) {
-                        Text("Earth Lord · 地球新主".localized)
+                        Text("行走的领主 · Walking Lord".localized)
                             .font(.caption)
                             .foregroundColor(ApocalypseTheme.textMuted)
                     }

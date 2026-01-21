@@ -114,7 +114,7 @@ struct MapTabView: View {
                             .font(.headline)
                             .foregroundColor(ApocalypseTheme.textPrimary)
 
-                        Text("《地球新主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。".localized)
+                        Text("《行走的领主》需要获取您的位置来显示您在末日世界中的坐标，帮助您探索和圈定领地。".localized)
                             .font(.subheadline)
                             .foregroundColor(ApocalypseTheme.textSecondary)
                             .multilineTextAlignment(.center)
@@ -436,11 +436,11 @@ struct MapTabView: View {
                                 .font(.caption)
                                 .foregroundColor(ApocalypseTheme.textSecondary)
 
-                            Text("纬度: \(String(format: "%.6f", location.latitude))")
+                            Text(String(format: "纬度: %.6f".localized, location.latitude))
                                 .font(.caption2)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
 
-                            Text("经度: \(String(format: "%.6f", location.longitude))")
+                            Text(String(format: "经度: %.6f".localized, location.longitude))
                                 .font(.caption2)
                                 .foregroundColor(ApocalypseTheme.textPrimary)
                         }
@@ -495,9 +495,9 @@ struct MapTabView: View {
                 ExplorationResultView(result: result)
             }
         }
-        .alert("结束探索", isPresented: $showStopExplorationConfirm) {
-            Button("取消", role: .cancel) { }
-            Button("确认结束", role: .destructive) {
+        .alert("结束探索".localized, isPresented: $showStopExplorationConfirm) {
+            Button("取消".localized, role: .cancel) { }
+            Button("确认结束".localized, role: .destructive) {
                 Task {
                     await explorationManager.stopExploration()
                 }

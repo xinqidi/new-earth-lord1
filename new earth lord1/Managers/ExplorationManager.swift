@@ -854,7 +854,7 @@ class ExplorationManager: ObservableObject {
                 isOverspeed = true
                 overspeedStartTime = Date()
                 overspeedCountdown = overspeedTimeout
-                speedWarning = String(format: "速度过快（%.0f km/h）！请在 %d 秒内降速", speedKmh, overspeedTimeout)
+                speedWarning = String(format: "速度过快（%.0f km/h）！请在 %d 秒内降速".localized, speedKmh, overspeedTimeout)
 
                 print("⚠️ [探索] 速度警告: \(String(format: "%.1f", speedKmh))km/h > \(speedThreshold)km/h，开始倒计时")
 
@@ -868,7 +868,7 @@ class ExplorationManager: ObservableObject {
 
                     if remaining > 0 {
                         overspeedCountdown = remaining
-                        speedWarning = String(format: "速度过快（%.0f km/h）！请在 %d 秒内降速", speedKmh, remaining)
+                        speedWarning = String(format: "速度过快（%.0f km/h）！请在 %d 秒内降速".localized, speedKmh, remaining)
                     }
                 }
             }
