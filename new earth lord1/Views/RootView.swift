@@ -18,6 +18,9 @@ struct RootView: View {
     /// 探索管理器
     @StateObject private var explorationManager = ExplorationManager()
 
+    /// 背包管理器
+    @StateObject private var inventoryManager = InventoryManager()
+
     /// 语言管理器
     @EnvironmentObject private var languageManager: LanguageManager
 
@@ -36,6 +39,7 @@ struct RootView: View {
                     .environmentObject(authManager)
                     .environmentObject(locationManager)
                     .environmentObject(explorationManager)
+                    .environmentObject(inventoryManager)
                     .transition(.opacity)
                     .onAppear {
                         // 配置并启动玩家位置上报
@@ -80,6 +84,22 @@ struct RootView: View {
 
         // 配置 AIItemGenerator
         AIItemGenerator.shared.configure(supabase: authManager.supabase)
+
+        // 配置 InventoryManager
+        inventoryManager.configure(supabase: authManager.supabase, userId: userId)
+
+        // 配置 BuildingManager
+        BuildingManager.shared.configure(
+            supabase: authManager.supabase,
+            userId: userId,
+            inventoryManager: inventoryManager
+        )
+
+        // 加载建筑模板并获取玩家建筑
+        Task {
+            BuildingManager.shared.loadTemplates()
+            await BuildingManager.shared.fetchPlayerBuildings(territoryId: nil)
+        }
 
         // 启动位置上报
         PlayerLocationManager.shared.startReporting()
