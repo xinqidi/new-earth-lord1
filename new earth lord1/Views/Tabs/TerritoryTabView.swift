@@ -109,9 +109,16 @@ struct TerritoryTabView: View {
                         }
                     }
                 )
+                .environmentObject(BuildingManager.shared)
             }
         }
         .id(languageManager.currentLanguage) // 语言切换时重新渲染
+        .onReceive(NotificationCenter.default.publisher(for: .territoryUpdated)) { _ in
+            // 收到领地更新通知（重命名或删除），刷新列表
+            Task {
+                await loadMyTerritories()
+            }
+        }
     }
 
     // MARK: - Subviews

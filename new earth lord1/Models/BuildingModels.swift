@@ -13,6 +13,7 @@ import SwiftUI
 
 /// 建筑分类枚举
 enum BuildingCategory: String, Codable, CaseIterable {
+    case all = "all"                 // 全部（仅用于UI筛选）
     case survival = "survival"       // 生存
     case storage = "storage"         // 储存
     case production = "production"   // 生产
@@ -21,6 +22,7 @@ enum BuildingCategory: String, Codable, CaseIterable {
     /// 中文显示名称
     var displayName: String {
         switch self {
+        case .all: return "全部"
         case .survival: return "生存"
         case .storage: return "储存"
         case .production: return "生产"
@@ -31,6 +33,7 @@ enum BuildingCategory: String, Codable, CaseIterable {
     /// SF Symbol 图标
     var icon: String {
         switch self {
+        case .all: return "square.grid.2x2"
         case .survival: return "flame.fill"
         case .storage: return "archivebox.fill"
         case .production: return "hammer.fill"
@@ -154,6 +157,19 @@ struct PlayerBuilding: Codable, Identifiable {
         } else {
             return "\(seconds)秒"
         }
+    }
+
+    /// 建造进度（0.0~1.0）
+    var constructionProgress: Double {
+        guard status == .constructing,
+              let completedAt = buildCompletedAt else { return 1.0 }
+
+        let totalTime = completedAt.timeIntervalSince(buildStartedAt)
+        let elapsed = Date().timeIntervalSince(buildStartedAt)
+
+        if totalTime <= 0 { return 1.0 }
+        let progress = min(max(elapsed / totalTime, 0.0), 1.0)
+        return progress
     }
 }
 

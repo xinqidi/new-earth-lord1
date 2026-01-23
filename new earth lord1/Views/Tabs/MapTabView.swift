@@ -51,6 +51,9 @@ struct MapTabView: View {
     /// 已加载的领地列表
     @State private var territories: [Territory] = []
 
+    /// 建筑管理器
+    @ObservedObject private var buildingManager = BuildingManager.shared
+
     // MARK: - Day 19: 碰撞检测状态
 
     /// 碰撞检测定时器
@@ -95,7 +98,8 @@ struct MapTabView: View {
                 isPathClosed: locationManager.isPathClosed,
                 territories: territories,
                 currentUserId: authManager.currentUser?.id.uuidString,
-                nearbyPOIs: explorationManager.nearbyPOIs
+                nearbyPOIs: explorationManager.nearbyPOIs,
+                playerBuildings: buildingManager.playerBuildings
             )
             .edgesIgnoringSafeArea(.top) // 只忽略顶部安全区域，保留底部给标签栏
 
@@ -470,6 +474,16 @@ struct MapTabView: View {
             // 加载领地
             Task {
                 await loadTerritories()
+            }
+            // 加载所有建筑（用于地图显示）
+            Task {
+                await buildingManager.fetchPlayerBuildings(territoryId: nil)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .buildingUpdated)) { _ in
+            // 建筑更新时刷新数据
+            Task {
+                await buildingManager.fetchPlayerBuildings(territoryId: nil)
             }
         }
         .onReceive(locationManager.$isPathClosed) { isClosed in

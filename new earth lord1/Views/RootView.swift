@@ -95,8 +95,12 @@ struct RootView: View {
             inventoryManager: inventoryManager
         )
 
-        // 加载建筑模板并获取玩家建筑
+        // 加载背包、建筑模板和玩家建筑
         Task {
+            // 首先加载背包（建造系统需要检查资源）
+            await inventoryManager.loadInventory()
+
+            // 然后加载建筑数据
             BuildingManager.shared.loadTemplates()
             await BuildingManager.shared.fetchPlayerBuildings(territoryId: nil)
         }

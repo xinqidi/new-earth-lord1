@@ -163,6 +163,36 @@ class TerritoryManager {
         }
     }
 
+    /// 更新领地名称
+    /// - Parameters:
+    ///   - territoryId: 领地 ID
+    ///   - newName: 新名称
+    /// - Throws: 更新失败时抛出错误
+    func updateTerritoryName(territoryId: String, newName: String) async throws {
+        struct NameUpdate: Encodable {
+            let name: String
+        }
+
+        do {
+            try await supabase
+                .from("territories")
+                .update(NameUpdate(name: newName))
+                .eq("id", value: territoryId)
+                .execute()
+
+            print("✅ [领地管理器] 更新名称成功 - ID: \(territoryId), 新名称: \(newName)")
+            TerritoryLogger.shared.log("重命名领地成功: \(newName)", type: .info)
+
+            // 发送通知刷新列表
+            NotificationCenter.default.post(name: .territoryUpdated, object: nil)
+
+        } catch {
+            print("❌ [领地管理器] 更新名称失败: \(error.localizedDescription)")
+            TerritoryLogger.shared.log("重命名领地失败: \(error.localizedDescription)", type: .error)
+            throw error
+        }
+    }
+
     // MARK: - Private Methods
 
     /// 将坐标数组转换为 JSON 格式的 path
@@ -482,4 +512,11 @@ enum TerritoryError: LocalizedError {
             return "加载失败: \(error.localizedDescription)"
         }
     }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    /// 领地更新通知（重命名、删除后发送）
+    static let territoryUpdated = Notification.Name("territoryUpdated")
 }

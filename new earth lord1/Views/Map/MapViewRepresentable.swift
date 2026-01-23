@@ -42,6 +42,9 @@ struct MapViewRepresentable: UIViewRepresentable {
     /// 附近POI列表
     var nearbyPOIs: [POI]
 
+    /// 玩家建筑列表
+    var playerBuildings: [PlayerBuilding]
+
     // MARK: - UIViewRepresentable Methods
 
     /// 创建 MKMapView
@@ -79,6 +82,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         // 绘制POI标注
         context.coordinator.updatePOIAnnotations(on: uiView, pois: nearbyPOIs)
+
+        // 更新建筑标注
+        context.coordinator.updateBuildingAnnotations(on: uiView, buildings: playerBuildings)
     }
 
     /// 创建 Coordinator（处理地图代理事件）
@@ -328,11 +334,62 @@ struct MapViewRepresentable: UIViewRepresentable {
             print("📍 [POI] 更新了 \(pois.count) 个POI标注（使用原始坐标，无需转换）")
         }
 
+        // MARK: - Building Annotations
+
+        /// 更新建筑标注
+        func updateBuildingAnnotations(on mapView: MKMapView, buildings: [PlayerBuilding]) {
+            // 移除旧的建筑标注
+            let existingBuildingAnnotations = mapView.annotations.filter { $0 is BuildingAnnotation }
+            mapView.removeAnnotations(existingBuildingAnnotations)
+
+            // 如果没有建筑，直接返回
+            guard !buildings.isEmpty else { return }
+
+            // 添加新的建筑标注
+            for building in buildings {
+                guard let lat = building.locationLat,
+                      let lon = building.locationLon else { continue }
+
+                // ⚠️ 建筑坐标存储为WGS-84，显示时需要转换为GCJ-02
+                let wgs84Coord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                let gcj02Coord = CoordinateConverter.wgs84ToGcj02(wgs84Coord)
+                let annotation = BuildingAnnotation(building: building, coordinate: gcj02Coord)
+                mapView.addAnnotation(annotation)
+            }
+
+            print("🏗️ [建筑标注] 更新了 \(buildings.count) 个建筑标注（已转换坐标）")
+        }
+
         /// POI标注视图
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             // 用户位置不需要自定义
             if annotation is MKUserLocation {
                 return nil
+            }
+
+            // 建筑标注
+            if let buildingAnnotation = annotation as? BuildingAnnotation {
+                let identifier = "BuildingAnnotation"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: buildingAnnotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true
+                } else {
+                    annotationView?.annotation = buildingAnnotation
+                }
+
+                // 根据建筑状态设置样式
+                switch buildingAnnotation.building.status {
+                case .constructing:
+                    annotationView?.markerTintColor = .systemBlue
+                    annotationView?.glyphImage = UIImage(systemName: "hammer.fill")
+                case .active:
+                    annotationView?.markerTintColor = .systemGreen
+                    annotationView?.glyphImage = UIImage(systemName: "building.2.fill")
+                }
+
+                return annotationView
             }
 
             // POI标注

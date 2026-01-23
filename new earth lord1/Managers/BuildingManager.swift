@@ -199,6 +199,9 @@ class BuildingManager: ObservableObject {
         }
 
         print("🏗️ [建筑] ✅ 建造已开始: \(template.name)，预计 \(template.buildTimeSeconds) 秒后完成")
+
+        // 发送通知
+        NotificationCenter.default.post(name: .buildingUpdated, object: nil)
     }
 
     // MARK: - Complete Construction
@@ -242,6 +245,9 @@ class BuildingManager: ObservableObject {
         }
 
         print("🏗️ [建筑] ✅ 建造完成: \(building.buildingName)")
+
+        // 发送通知
+        NotificationCenter.default.post(name: .buildingUpdated, object: nil)
     }
 
     // MARK: - Upgrade
@@ -318,6 +324,44 @@ class BuildingManager: ObservableObject {
         }
 
         print("🏗️ [建筑] ✅ 升级完成: \(building.buildingName) 已升至 Lv.\(building.level + 1)")
+
+        // 发送通知
+        NotificationCenter.default.post(name: .buildingUpdated, object: nil)
+    }
+
+    // MARK: - Demolish
+
+    /// 拆除建筑
+    func demolishBuilding(buildingId: UUID) async throws {
+        guard let supabase = supabase else {
+            throw BuildingError.notConfigured
+        }
+
+        // 查找建筑
+        guard let index = playerBuildings.firstIndex(where: { $0.id == buildingId }) else {
+            throw BuildingError.buildingNotFound
+        }
+
+        let building = playerBuildings[index]
+
+        print("🏗️ [建筑] 拆除建筑: \(building.buildingName)")
+
+        // 从数据库删除
+        try await supabase
+            .from("player_buildings")
+            .delete()
+            .eq("id", value: buildingId.uuidString)
+            .execute()
+
+        // 从本地列表移除
+        await MainActor.run {
+            self.playerBuildings.remove(at: index)
+        }
+
+        print("🏗️ [建筑] ✅ 拆除完成: \(building.buildingName)")
+
+        // 发送通知
+        NotificationCenter.default.post(name: .buildingUpdated, object: nil)
     }
 
     // MARK: - Fetch Buildings
@@ -443,7 +487,46 @@ class BuildingManager: ObservableObject {
         print("🏗️ [建筑] 建造完成检测已停止")
     }
 
+    // MARK: - Testing
+
+    /// 添加测试资源（仅用于测试）
+    func addTestResources() async {
+        guard let inventoryManager = inventoryManager else {
+            print("❌ [测试] InventoryManager 未配置")
+            return
+        }
+
+        print("🧪 [测试] 开始添加测试资源...")
+
+        do {
+            // 添加建造所需的资源
+            try await inventoryManager.addItem(itemId: "wood", quantity: 500)
+            try await inventoryManager.addItem(itemId: "stone", quantity: 300)
+            try await inventoryManager.addItem(itemId: "metal", quantity: 200)
+            try await inventoryManager.addItem(itemId: "glass", quantity: 100)
+
+            print("✅ [测试] 测试资源添加成功！")
+            print("   - 木材(wood): 500")
+            print("   - 石头(stone): 300")
+            print("   - 金属(metal): 200")
+            print("   - 玻璃(glass): 100")
+
+            // 重新加载背包
+            await inventoryManager.loadInventory()
+
+        } catch {
+            print("❌ [测试] 添加测试资源失败: \(error.localizedDescription)")
+        }
+    }
+
     deinit {
         stopConstructionCheck()
     }
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    /// 建筑更新通知（建造、升级、拆除后发送）
+    static let buildingUpdated = Notification.Name("buildingUpdated")
 }
