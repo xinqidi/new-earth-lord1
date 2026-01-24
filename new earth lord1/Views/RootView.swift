@@ -95,6 +95,14 @@ struct RootView: View {
             inventoryManager: inventoryManager
         )
 
+        // 配置 TradeManager
+        TradeManager.shared.configure(
+            supabase: authManager.supabase,
+            userId: userId,
+            username: authManager.currentUser?.displayName ?? "未知用户",
+            inventoryManager: inventoryManager
+        )
+
         // 加载背包、建筑模板和玩家建筑
         Task {
             // 首先加载背包（建造系统需要检查资源）
