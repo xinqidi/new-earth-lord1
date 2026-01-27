@@ -87,6 +87,9 @@
         }
       }
     },
+    "%@:" : {
+
+    },
     "%@%lld / %lld" : {
       "localizations" : {
         "en" : {
@@ -170,6 +173,19 @@
         }
       }
     },
+    "%lld / %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld / 200" : {
+
+    },
     "%lld 个点" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -187,12 +203,25 @@
         }
       }
     },
+    "%lld 件" : {
+
+    },
     "%lld/%lld" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld 项检查通过" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld 项检查通过"
           }
         }
       }
@@ -237,6 +266,9 @@
 
     },
     "© 2026 Xiong Haibo" : {
+
+    },
+    "↔" : {
 
     },
     "|" : {
@@ -335,7 +367,19 @@
         }
       }
     },
+    "1. 打开 Supabase Dashboard" : {
+
+    },
     "1.0.0" : {
+
+    },
+    "2. 进入 SQL Editor" : {
+
+    },
+    "3. 执行 create_trade_tables.sql 脚本" : {
+
+    },
+    "4. 重新运行此检查" : {
 
     },
     "Apple 登录功能开发中..." : {
@@ -997,6 +1041,9 @@
           }
         }
       }
+    },
+    "剩余 %@" : {
+
     },
     "功能与设置" : {
       "extractionState" : "stale",
@@ -2362,6 +2409,9 @@
         }
       }
     },
+    "数据库配置检查" : {
+
+    },
     "新密码" : {
       "localizations" : {
         "en" : {
@@ -2660,6 +2710,12 @@
         }
       }
     },
+    "检查数据库配置" : {
+
+    },
+    "检查项目" : {
+
+    },
     "正在初始化..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2710,6 +2766,9 @@
           }
         }
       }
+    },
+    "此工具会检查以下内容：" : {
+
     },
     "此操作无法撤销！" : {
       "extractionState" : "stale",
@@ -4326,6 +4385,9 @@
         }
       }
     },
+    "配置完成" : {
+
+    },
     "重命名领地" : {
 
     },
@@ -4546,6 +4608,12 @@
           }
         }
       }
+    },
+    "需要执行的操作：" : {
+
+    },
+    "需要设置" : {
+
     },
     "领地" : {
       "extractionState" : "stale",
