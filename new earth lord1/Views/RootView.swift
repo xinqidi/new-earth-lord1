@@ -103,7 +103,13 @@ struct RootView: View {
             inventoryManager: inventoryManager
         )
 
-        // 加载背包、建筑模板和玩家建筑
+        // 配置 CommunicationManager
+        CommunicationManager.shared.configure(
+            supabase: authManager.supabase,
+            userId: userId
+        )
+
+        // 加载背包、建筑模板、玩家建筑和通讯设备
         Task {
             // 首先加载背包（建造系统需要检查资源）
             await inventoryManager.loadInventory()
@@ -111,6 +117,9 @@ struct RootView: View {
             // 然后加载建筑数据
             BuildingManager.shared.loadTemplates()
             await BuildingManager.shared.fetchPlayerBuildings(territoryId: nil)
+
+            // 加载通讯设备
+            await CommunicationManager.shared.loadDevices()
         }
 
         // 启动位置上报

@@ -777,6 +777,9 @@ class AuthManager: ObservableObject {
             resourcePointCount = 0
             totalExplorationDistance = 0
 
+            // 清除通讯管理器状态
+            CommunicationManager.shared.clearState()
+
         } catch {
             errorMessage = "退出登录失败: \(error.localizedDescription)"
         }
