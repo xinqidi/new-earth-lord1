@@ -96,7 +96,7 @@ struct ProfileTabView: View {
                         Image(systemName: "flag.fill")
                             .font(.title3)
                             .foregroundColor(ApocalypseTheme.primary)
-                        Text("0")
+                        Text("\(authManager.territoryCount)")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
@@ -116,7 +116,7 @@ struct ProfileTabView: View {
                         Image(systemName: "info.circle.fill")
                             .font(.title3)
                             .foregroundColor(ApocalypseTheme.primary)
-                        Text("0")
+                        Text("\(authManager.resourcePointCount)")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
@@ -136,7 +136,7 @@ struct ProfileTabView: View {
                         Image(systemName: "figure.walk")
                             .font(.title3)
                             .foregroundColor(ApocalypseTheme.primary)
-                        Text("0")
+                        Text(formattedDistance)
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(ApocalypseTheme.textPrimary)
@@ -151,6 +151,12 @@ struct ProfileTabView: View {
                 .cornerRadius(12)
                 .padding(.horizontal)
                 .padding(.bottom, 15)
+                .onAppear {
+                    // 加载用户统计数据
+                    Task {
+                        await authManager.loadUserStats()
+                    }
+                }
 
                 // 设置选项组（缩小间距）
                 VStack(spacing: 0) {
@@ -539,6 +545,18 @@ struct ProfileTabView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    /// 格式化的探索距离
+    private var formattedDistance: String {
+        let distance = authManager.totalExplorationDistance
+        if distance >= 1000 {
+            return String(format: "%.1fkm", distance / 1000)
+        } else {
+            return "\(Int(distance))m"
         }
     }
 

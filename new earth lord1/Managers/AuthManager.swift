@@ -9,6 +9,7 @@ import SwiftUI
 import Supabase
 import Combine
 import GoogleSignIn
+import AuthenticationServices
 
 // MARK: - 辅助类型
 
@@ -109,6 +110,17 @@ class AuthManager: ObservableObject {
 
     /// 验证码是否已验证（等待设置密码）
     @Published var otpVerified: Bool = false
+
+    // MARK: - User Statistics
+
+    /// 用户领地数量
+    @Published var territoryCount: Int = 0
+
+    /// 用户资源点数量
+    @Published var resourcePointCount: Int = 0
+
+    /// 累计探索距离（米）
+    @Published var totalExplorationDistance: Double = 0
 
     // MARK: - Internal Properties
 
@@ -467,16 +479,90 @@ class AuthManager: ObservableObject {
         isLoading = false
     }
 
-    // MARK: - 第三方登录（预留）
+    // MARK: - 第三方登录
 
     /// Apple 登录
-    /// TODO: 实现 Apple 第三方登录
+    /// 使用 AuthenticationServices 框架与 Supabase 集成
     func signInWithApple() async {
-        // TODO: 实现 Apple Sign In 集成
-        // 1. 配置 Apple Developer 账号
-        // 2. 在 Supabase Dashboard 配置 Apple Provider
-        // 3. 使用 AuthenticationServices 框架
-        errorMessage = "Apple 登录功能开发中...".localized
+        print("🍎 [Apple登录] 开始 Apple 登录流程")
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 1. 执行 Apple 登录获取凭证
+            print("🚀 [Apple登录] 启动 Apple 登录界面...")
+            let coordinator = SignInWithAppleCoordinator()
+            let appleResult = try await coordinator.signIn()
+            print("✅ [Apple登录] Apple 登录成功，获取到 ID Token")
+
+            // 2. 使用 Supabase 登录
+            print("🔐 [Apple登录] 使用 Apple 凭证登录 Supabase...")
+            let session = try await supabase.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .apple,
+                    idToken: appleResult.idToken,
+                    nonce: nil
+                )
+            )
+            print("✅ [Apple登录] Supabase 登录成功")
+
+            // 3. 如果 Apple 提供了用户全名，保存到 user_metadata
+            // Apple 只在用户首次授权时提供全名
+            if let fullName = appleResult.fullName, !fullName.isEmpty {
+                print("👤 [Apple登录] 检测到用户全名: \(fullName)，保存到 metadata")
+                do {
+                    _ = try await supabase.auth.update(
+                        user: UserAttributes(data: ["full_name": .string(fullName)])
+                    )
+                    print("✅ [Apple登录] 用户全名已保存")
+                } catch {
+                    print("⚠️ [Apple登录] 保存用户全名失败: \(error.localizedDescription)")
+                }
+            }
+
+            // 4. 更新用户状态
+            let user = session.user
+            let username = user.userMetadata["username"]?.value as? String
+            let savedFullName = user.userMetadata["full_name"]?.value as? String
+
+            print("👤 [Apple登录] 用户信息:")
+            print("   - ID: \(user.id)")
+            print("   - Email: \(user.email ?? "无")")
+            print("   - Username: \(username ?? "无")")
+            print("   - Full Name: \(savedFullName ?? "无")")
+
+            currentUser = User(
+                id: user.id,
+                email: user.email,
+                username: username ?? savedFullName ?? appleResult.fullName
+            )
+
+            // 5. 设置认证状态
+            isAuthenticated = true
+            needsPasswordSetup = false
+            print("✅ [Apple登录] 用户状态已更新，登录完成")
+
+        } catch let error as SignInWithAppleError {
+            print("❌ [Apple登录] Apple Sign In 错误: \(error)")
+
+            switch error {
+            case .cancelled:
+                print("ℹ️ [Apple登录] 用户取消了登录")
+                errorMessage = nil
+            case .failed(let message):
+                errorMessage = "Apple 登录失败: \(message)"
+            case .invalidCredential:
+                errorMessage = "Apple 登录失败：凭证无效".localized
+            case .noIdToken:
+                errorMessage = "Apple 登录失败：无法获取身份令牌".localized
+            }
+        } catch {
+            print("❌ [Apple登录] 发生异常: \(error.localizedDescription)")
+            errorMessage = "Apple 登录失败: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+        print("🏁 [Apple登录] Apple 登录流程结束")
     }
 
     /// Google 登录
@@ -575,6 +661,98 @@ class AuthManager: ObservableObject {
         print("🏁 [Google登录] Google 登录流程结束")
     }
 
+    // MARK: - 用户统计
+
+    /// 加载用户统计数据（领地数量、资源点数量、探索距离）
+    func loadUserStats() async {
+        guard let userId = currentUser?.id else {
+            print("⚠️ [统计] 用户未登录，跳过统计加载")
+            return
+        }
+
+        print("📊 [统计] 开始加载用户统计数据...")
+
+        // 并行加载所有统计数据
+        async let territoriesTask = loadTerritoryCount(userId: userId)
+        async let explorationTask = loadExplorationStats(userId: userId)
+
+        let (territories, exploration) = await (territoriesTask, explorationTask)
+
+        await MainActor.run {
+            self.territoryCount = territories
+            self.totalExplorationDistance = exploration
+            // 资源点暂时设为0，后续可以添加
+            self.resourcePointCount = 0
+        }
+
+        print("📊 [统计] 加载完成 - 领地: \(territories), 探索距离: \(Int(exploration))m")
+    }
+
+    /// 加载领地数量
+    private func loadTerritoryCount(userId: UUID) async -> Int {
+        do {
+            struct CountResult: Decodable {
+                let count: Int
+            }
+
+            let response: [CountResult] = try await supabase
+                .from("territories")
+                .select("count", head: false, count: .exact)
+                .eq("user_id", value: userId.uuidString)
+                .eq("is_active", value: true)
+                .execute()
+                .value
+
+            // 使用 count 查询返回的结果
+            return response.first?.count ?? 0
+        } catch {
+            print("❌ [统计] 加载领地数量失败: \(error.localizedDescription)")
+
+            // 备用方案：直接查询并计数
+            do {
+                struct Territory: Decodable {
+                    let id: UUID
+                }
+
+                let territories: [Territory] = try await supabase
+                    .from("territories")
+                    .select("id")
+                    .eq("user_id", value: userId.uuidString)
+                    .eq("is_active", value: true)
+                    .execute()
+                    .value
+
+                return territories.count
+            } catch {
+                print("❌ [统计] 备用领地查询也失败: \(error.localizedDescription)")
+                return 0
+            }
+        }
+    }
+
+    /// 加载探索统计数据（累计距离）
+    private func loadExplorationStats(userId: UUID) async -> Double {
+        do {
+            struct ExplorationRecord: Decodable {
+                let distance: Double?
+            }
+
+            let records: [ExplorationRecord] = try await supabase
+                .from("exploration_records")
+                .select("distance")
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+                .value
+
+            // 计算总距离
+            let total = records.compactMap { $0.distance }.reduce(0, +)
+            return total
+        } catch {
+            print("❌ [统计] 加载探索距离失败: \(error.localizedDescription)")
+            return 0
+        }
+    }
+
     // MARK: - 其他方法
 
     /// 退出登录
@@ -593,6 +771,11 @@ class AuthManager: ObservableObject {
             otpVerified = false
             pendingEmail = nil
             errorMessage = nil
+
+            // 清除统计数据
+            territoryCount = 0
+            resourcePointCount = 0
+            totalExplorationDistance = 0
 
         } catch {
             errorMessage = "退出登录失败: \(error.localizedDescription)"
@@ -768,5 +951,95 @@ class AuthManager: ObservableObject {
 
         isLoading = false
         print("🏁 [会话检查] 会话检查完成")
+    }
+}
+
+// MARK: - Sign in with Apple 辅助类型
+
+/// Apple 登录结果
+struct AppleSignInResult {
+    let idToken: String
+    let fullName: String?
+    let email: String?
+}
+
+/// Sign in with Apple 错误类型
+enum SignInWithAppleError: Error {
+    case cancelled
+    case failed(String)
+    case invalidCredential
+    case noIdToken
+}
+
+/// Sign in with Apple 协调器
+class SignInWithAppleCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+
+    private var continuation: CheckedContinuation<AppleSignInResult, Error>?
+
+    @MainActor
+    func signIn() async throws -> AppleSignInResult {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+
+            let appleIDProvider = ASAuthorizationAppleIDProvider()
+            let request = appleIDProvider.createRequest()
+            request.requestedScopes = [.fullName, .email]
+
+            let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+            authorizationController.delegate = self
+            authorizationController.presentationContextProvider = self
+            authorizationController.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            continuation?.resume(throwing: SignInWithAppleError.invalidCredential)
+            return
+        }
+
+        guard let identityTokenData = appleIDCredential.identityToken,
+              let idToken = String(data: identityTokenData, encoding: .utf8) else {
+            continuation?.resume(throwing: SignInWithAppleError.noIdToken)
+            return
+        }
+
+        var fullName: String? = nil
+        if let nameComponents = appleIDCredential.fullName {
+            let formatter = PersonNameComponentsFormatter()
+            formatter.style = .default
+            let formattedName = formatter.string(from: nameComponents)
+            if !formattedName.isEmpty {
+                fullName = formattedName
+            }
+        }
+
+        let result = AppleSignInResult(
+            idToken: idToken,
+            fullName: fullName,
+            email: appleIDCredential.email
+        )
+        continuation?.resume(returning: result)
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        if let authError = error as? ASAuthorizationError {
+            switch authError.code {
+            case .canceled:
+                continuation?.resume(throwing: SignInWithAppleError.cancelled)
+            default:
+                continuation?.resume(throwing: SignInWithAppleError.failed(authError.localizedDescription))
+            }
+        } else {
+            continuation?.resume(throwing: SignInWithAppleError.failed(error.localizedDescription))
+        }
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return UIWindow()
+        }
+        return window
     }
 }
