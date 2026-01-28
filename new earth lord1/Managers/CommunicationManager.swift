@@ -31,6 +31,15 @@ final class CommunicationManager: ObservableObject {
     /// 错误信息
     @Published var errorMessage: String?
 
+    /// 所有公开频道
+    @Published private(set) var channels: [CommunicationChannel] = []
+
+    /// 已订阅的频道（包含订阅信息）
+    @Published private(set) var subscribedChannels: [SubscribedChannel] = []
+
+    /// 我的订阅列表
+    @Published private(set) var mySubscriptions: [ChannelSubscription] = []
+
     // MARK: - Private Properties
 
     /// Supabase 客户端
@@ -235,12 +244,260 @@ final class CommunicationManager: ObservableObject {
         devices.first(where: { $0.deviceType == deviceType })
     }
 
+    // MARK: - Channel Methods
+
+    /// 加载所有公开频道
+    func loadPublicChannels() async {
+        guard let supabase = supabase else {
+            print("❌ [频道] 未配置，无法加载频道")
+            return
+        }
+
+        do {
+            print("📡 [频道] 加载公开频道...")
+
+            let response: [CommunicationChannel] = try await supabase
+                .from("communication_channels")
+                .select()
+                .eq("is_active", value: true)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            channels = response
+            print("📡 [频道] ✅ 加载成功，共 \(channels.count) 个频道")
+        } catch {
+            print("❌ [频道] 加载失败: \(error.localizedDescription)")
+            errorMessage = "加载频道失败"
+        }
+    }
+
+    /// 加载已订阅的频道
+    func loadSubscribedChannels() async {
+        guard let supabase = supabase, let userId = userId else {
+            print("❌ [频道] 未配置，无法加载订阅")
+            return
+        }
+
+        do {
+            print("📡 [频道] 加载已订阅频道...")
+
+            // 1. 加载订阅列表
+            let subscriptions: [ChannelSubscription] = try await supabase
+                .from("channel_subscriptions")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+                .value
+
+            mySubscriptions = subscriptions
+            print("📡 [频道] 订阅数量: \(subscriptions.count)")
+
+            // 2. 如果没有订阅，清空并返回
+            if subscriptions.isEmpty {
+                subscribedChannels = []
+                return
+            }
+
+            // 3. 获取订阅频道的详情
+            let channelIds = subscriptions.map { $0.channelId.uuidString }
+            let channelList: [CommunicationChannel] = try await supabase
+                .from("communication_channels")
+                .select()
+                .in("id", values: channelIds)
+                .execute()
+                .value
+
+            // 4. 组合成 SubscribedChannel
+            subscribedChannels = subscriptions.compactMap { sub in
+                guard let channel = channelList.first(where: { $0.id == sub.channelId }) else {
+                    return nil
+                }
+                return SubscribedChannel(channel: channel, subscription: sub)
+            }
+
+            print("📡 [频道] ✅ 已订阅频道加载成功")
+        } catch {
+            print("❌ [频道] 加载订阅失败: \(error.localizedDescription)")
+            errorMessage = "加载订阅失败"
+        }
+    }
+
+    /// 创建频道
+    func createChannel(type: ChannelType, name: String, description: String?, latitude: Double? = nil, longitude: Double? = nil) async -> Bool {
+        guard let supabase = supabase, let userId = userId else {
+            print("❌ [频道] 未配置，无法创建频道")
+            errorMessage = "通讯系统未配置"
+            return false
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            print("📡 [频道] 创建频道: \(name)...")
+
+            // 处理 channelType，publicChannel 转为 "public"
+            let typeString = type == .publicChannel ? "public" : type.rawValue
+
+            let params: [String: AnyJSON] = [
+                "p_creator_id": .string(userId.uuidString),
+                "p_channel_type": .string(typeString),
+                "p_name": .string(name),
+                "p_description": description.map { .string($0) } ?? .null,
+                "p_latitude": latitude.map { .double($0) } ?? .null,
+                "p_longitude": longitude.map { .double($0) } ?? .null
+            ]
+
+            let _: UUID = try await supabase
+                .rpc("create_channel_with_subscription", params: params)
+                .execute()
+                .value
+
+            print("📡 [频道] ✅ 频道创建成功")
+
+            // 刷新数据
+            await loadPublicChannels()
+            await loadSubscribedChannels()
+
+            isLoading = false
+            return true
+        } catch {
+            print("❌ [频道] 创建失败: \(error.localizedDescription)")
+            errorMessage = "创建频道失败: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 订阅频道
+    func subscribeToChannel(channelId: UUID) async -> Bool {
+        guard let supabase = supabase, let userId = userId else {
+            print("❌ [频道] 未配置，无法订阅")
+            errorMessage = "通讯系统未配置"
+            return false
+        }
+
+        isLoading = true
+
+        do {
+            print("📡 [频道] 订阅频道...")
+
+            try await supabase.rpc(
+                "subscribe_to_channel",
+                params: [
+                    "p_user_id": AnyJSON.string(userId.uuidString),
+                    "p_channel_id": AnyJSON.string(channelId.uuidString)
+                ]
+            ).execute()
+
+            print("📡 [频道] ✅ 订阅成功")
+
+            // 刷新数据
+            await loadPublicChannels()
+            await loadSubscribedChannels()
+
+            isLoading = false
+            return true
+        } catch {
+            print("❌ [频道] 订阅失败: \(error.localizedDescription)")
+            errorMessage = "订阅失败"
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 取消订阅频道
+    func unsubscribeFromChannel(channelId: UUID) async -> Bool {
+        guard let supabase = supabase, let userId = userId else {
+            print("❌ [频道] 未配置，无法取消订阅")
+            errorMessage = "通讯系统未配置"
+            return false
+        }
+
+        isLoading = true
+
+        do {
+            print("📡 [频道] 取消订阅...")
+
+            try await supabase.rpc(
+                "unsubscribe_from_channel",
+                params: [
+                    "p_user_id": AnyJSON.string(userId.uuidString),
+                    "p_channel_id": AnyJSON.string(channelId.uuidString)
+                ]
+            ).execute()
+
+            print("📡 [频道] ✅ 取消订阅成功")
+
+            // 刷新数据
+            await loadPublicChannels()
+            await loadSubscribedChannels()
+
+            isLoading = false
+            return true
+        } catch {
+            print("❌ [频道] 取消订阅失败: \(error.localizedDescription)")
+            errorMessage = "取消订阅失败"
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 删除频道（仅创建者可用）
+    func deleteChannel(channelId: UUID) async -> Bool {
+        guard let supabase = supabase else {
+            print("❌ [频道] 未配置，无法删除")
+            errorMessage = "通讯系统未配置"
+            return false
+        }
+
+        isLoading = true
+
+        do {
+            print("📡 [频道] 删除频道...")
+
+            try await supabase
+                .from("communication_channels")
+                .delete()
+                .eq("id", value: channelId.uuidString)
+                .execute()
+
+            print("📡 [频道] ✅ 删除成功")
+
+            // 刷新数据
+            await loadPublicChannels()
+            await loadSubscribedChannels()
+
+            isLoading = false
+            return true
+        } catch {
+            print("❌ [频道] 删除失败: \(error.localizedDescription)")
+            errorMessage = "删除失败"
+            isLoading = false
+            return false
+        }
+    }
+
+    /// 检查是否已订阅频道
+    func isSubscribed(channelId: UUID) -> Bool {
+        mySubscriptions.contains { $0.channelId == channelId }
+    }
+
+    /// 检查是否是频道创建者
+    func isChannelCreator(channel: CommunicationChannel) -> Bool {
+        channel.creatorId == userId
+    }
+
     // MARK: - Cleanup
 
     /// 清除状态（退出登录时调用）
     func clearState() {
         devices = []
         currentDevice = nil
+        channels = []
+        subscribedChannels = []
+        mySubscriptions = []
         errorMessage = nil
         isConfigured = false
         userId = nil
