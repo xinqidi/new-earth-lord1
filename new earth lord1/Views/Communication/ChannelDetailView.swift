@@ -18,6 +18,7 @@ struct ChannelDetailView: View {
 
     @State private var showDeleteConfirm = false
     @State private var isProcessing = false
+    @State private var showChatView = false
 
     private var isSubscribed: Bool {
         communicationManager.isSubscribed(channelId: channel.id)
@@ -60,6 +61,10 @@ struct ChannelDetailView: View {
                 }
             } message: {
                 Text("删除后无法恢复，频道内所有消息也将被删除。确定要删除「\(channel.name)」吗？")
+            }
+            .fullScreenCover(isPresented: $showChatView) {
+                ChannelChatView(channel: channel)
+                    .environmentObject(authManager)
             }
         }
     }
@@ -177,6 +182,22 @@ struct ChannelDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
+            // 进入聊天按钮（已订阅用户显示）
+            if isSubscribed {
+                Button(action: { showChatView = true }) {
+                    HStack {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                        Text("进入聊天".localized)
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(ApocalypseTheme.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+            }
+
             // 订阅/取消订阅按钮（非创建者显示）
             if !isCreator {
                 Button(action: toggleSubscription) {

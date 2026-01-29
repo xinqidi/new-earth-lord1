@@ -283,3 +283,139 @@ struct SubscribedChannel: Identifiable {
 
     var id: UUID { channel.id }
 }
+
+// MARK: - 位置点模型（用于解析 PostGIS POINT）
+
+struct LocationPoint: Codable {
+    let latitude: Double
+    let longitude: Double
+
+    /// 从 PostGIS WKT 格式解析：POINT(经度 纬度)
+    static func fromPostGIS(_ wkt: String) -> LocationPoint? {
+        // 格式：POINT(121.4737 31.2304)
+        let pattern = #"POINT\(([0-9.-]+)\s+([0-9.-]+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: wkt, range: NSRange(wkt.startIndex..., in: wkt)),
+              let lonRange = Range(match.range(at: 1), in: wkt),
+              let latRange = Range(match.range(at: 2), in: wkt),
+              let longitude = Double(wkt[lonRange]),
+              let latitude = Double(wkt[latRange]) else {
+            return nil
+        }
+        return LocationPoint(latitude: latitude, longitude: longitude)
+    }
+}
+
+// MARK: - 消息元数据
+
+struct MessageMetadata: Codable {
+    let deviceType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case deviceType = "device_type"
+    }
+}
+
+// MARK: - 频道消息模型
+
+struct ChannelMessage: Codable, Identifiable {
+    let messageId: UUID
+    let channelId: UUID
+    let senderId: UUID?
+    let senderCallsign: String?
+    let content: String
+    let senderLocation: LocationPoint?
+    let metadata: MessageMetadata?
+    let createdAt: Date
+
+    var id: UUID { messageId }
+
+    enum CodingKeys: String, CodingKey {
+        case messageId = "message_id"
+        case channelId = "channel_id"
+        case senderId = "sender_id"
+        case senderCallsign = "sender_callsign"
+        case content
+        case senderLocation = "sender_location"
+        case metadata
+        case createdAt = "created_at"
+    }
+
+    // 自定义解码（处理 PostGIS POINT 格式和多种日期格式）
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        messageId = try container.decode(UUID.self, forKey: .messageId)
+        channelId = try container.decode(UUID.self, forKey: .channelId)
+        senderId = try container.decodeIfPresent(UUID.self, forKey: .senderId)
+        senderCallsign = try container.decodeIfPresent(String.self, forKey: .senderCallsign)
+        content = try container.decode(String.self, forKey: .content)
+        metadata = try container.decodeIfPresent(MessageMetadata.self, forKey: .metadata)
+
+        // 解析位置（可能是 PostGIS 格式字符串或普通对象）
+        if let locationString = try? container.decode(String.self, forKey: .senderLocation) {
+            senderLocation = LocationPoint.fromPostGIS(locationString)
+        } else {
+            senderLocation = try container.decodeIfPresent(LocationPoint.self, forKey: .senderLocation)
+        }
+
+        // 解析日期（支持多种格式）
+        if let dateString = try? container.decode(String.self, forKey: .createdAt) {
+            createdAt = ChannelMessage.parseDate(dateString) ?? Date()
+        } else {
+            createdAt = try container.decode(Date.self, forKey: .createdAt)
+        }
+    }
+
+    // 日期解析辅助方法
+    private static func parseDate(_ string: String) -> Date? {
+        let formats = [
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        ]
+        for format in formats {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            if let date = formatter.date(from: string) {
+                return date
+            }
+        }
+        return nil
+    }
+
+    // MARK: - 显示用计算属性
+
+    /// 时间显示（如：刚刚、5分钟前、10:30）
+    var timeAgo: String {
+        let interval = Date().timeIntervalSince(createdAt)
+        if interval < 60 {
+            return "刚刚".localized
+        } else if interval < 3600 {
+            return "\(Int(interval / 60))分钟前".localized
+        } else if interval < 86400 {
+            return "\(Int(interval / 3600))小时前".localized
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM-dd HH:mm"
+            return formatter.string(from: createdAt)
+        }
+    }
+
+    /// 时间戳显示（如：10:30）
+    var timeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: createdAt)
+    }
+
+    /// 获取设备类型
+    var deviceType: String? {
+        metadata?.deviceType
+    }
+}

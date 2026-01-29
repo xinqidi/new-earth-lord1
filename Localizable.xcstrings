@@ -17,6 +17,9 @@
         }
       }
     },
+    "·" : {
+
+    },
     "(%lld)" : {
       "localizations" : {
         "en" : {
@@ -352,6 +355,7 @@
       }
     },
     "0" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -990,6 +994,9 @@
           }
         }
       }
+    },
+    "删除后无法恢复，频道内所有消息也将被删除。确定要删除「%@」吗？" : {
+
     },
     "删除账户" : {
       "extractionState" : "stale",
@@ -2787,6 +2794,9 @@
         }
       }
     },
+    "此频道需要%@才能使用" : {
+
+    },
     "水" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3652,6 +3662,9 @@
           }
         }
       }
+    },
+    "覆盖范围: %@" : {
+
     },
     "设置" : {
       "extractionState" : "stale",
