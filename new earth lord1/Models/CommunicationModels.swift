@@ -327,6 +327,7 @@ struct ChannelMessage: Codable, Identifiable {
     let senderLocation: LocationPoint?
     let metadata: MessageMetadata?
     let createdAt: Date
+    let senderDeviceType: DeviceType?  // Day 35: 发送者设备类型（用于距离过滤）
 
     var id: UUID { messageId }
 
@@ -339,6 +340,7 @@ struct ChannelMessage: Codable, Identifiable {
         case senderLocation = "sender_location"
         case metadata
         case createdAt = "created_at"
+        case senderDeviceType = "sender_device_type"
     }
 
     // 自定义解码（处理 PostGIS POINT 格式和多种日期格式）
@@ -364,6 +366,17 @@ struct ChannelMessage: Codable, Identifiable {
             createdAt = ChannelMessage.parseDate(dateString) ?? Date()
         } else {
             createdAt = try container.decode(Date.self, forKey: .createdAt)
+        }
+
+        // Day 35: 解析发送者设备类型（优先从独立字段，其次从 metadata）
+        if let deviceTypeString = try? container.decode(String.self, forKey: .senderDeviceType),
+           let deviceType = DeviceType(rawValue: deviceTypeString) {
+            senderDeviceType = deviceType
+        } else if let deviceTypeValue = metadata?.deviceType,
+                  let deviceType = DeviceType(rawValue: deviceTypeValue) {
+            senderDeviceType = deviceType
+        } else {
+            senderDeviceType = nil  // 向后兼容：老消息没有设备类型
         }
     }
 

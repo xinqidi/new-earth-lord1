@@ -14,6 +14,11 @@ import Combine
 /// 使用 CoreLocation 获取用户位置，支持权限管理和错误处理
 class LocationManager: NSObject, ObservableObject {
 
+    // MARK: - Singleton
+
+    /// 全局单例（Day 35-B：用于距离过滤获取当前位置）
+    static let shared = LocationManager()
+
     // MARK: - Published Properties
 
     /// 用户当前位置坐标

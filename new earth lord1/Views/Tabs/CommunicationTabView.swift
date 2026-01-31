@@ -79,6 +79,7 @@ struct CommunicationTabView: View {
                 switch selectedSection {
                 case .messages:
                     MessageCenterView()
+                        .environmentObject(authManager)
                 case .channels:
                     ChannelCenterView()
                 case .call:
