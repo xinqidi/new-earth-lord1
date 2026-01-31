@@ -12,7 +12,6 @@ struct MessageCenterView: View {
     @StateObject private var communicationManager = CommunicationManager.shared
     @EnvironmentObject var authManager: AuthManager
     @State private var selectedChannel: CommunicationChannel?
-    @State private var showChatView = false
 
     var body: some View {
         Group {
@@ -26,11 +25,9 @@ struct MessageCenterView: View {
         .onAppear {
             loadData()
         }
-        .fullScreenCover(isPresented: $showChatView) {
-            if let channel = selectedChannel {
-                ChannelChatView(channel: channel)
-                    .environmentObject(authManager)
-            }
+        .fullScreenCover(item: $selectedChannel) { channel in
+            ChannelChatView(channel: channel)
+                .environmentObject(authManager)
         }
     }
 
@@ -70,7 +67,6 @@ struct MessageCenterView: View {
                         latestMessage: getLatestMessage(for: subscribedChannel.channel.id),
                         onTap: {
                             selectedChannel = subscribedChannel.channel
-                            showChatView = true
                         }
                     )
 
