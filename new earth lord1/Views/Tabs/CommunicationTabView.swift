@@ -84,14 +84,19 @@ struct CommunicationTabView: View {
                     ChannelCenterView()
                 case .call:
                     PTTCallView()
+                        .environmentObject(authManager)
                 case .devices:
                     DeviceManagementView()
+                        .environmentObject(authManager)
                 }
             }
         }
         .onAppear {
             Task {
                 await communicationManager.loadDevices()
+                // Day 36: 加载订阅频道并确保订阅官方频道
+                await communicationManager.loadSubscribedChannels()
+                await communicationManager.ensureOfficialChannelSubscribed()
             }
         }
     }

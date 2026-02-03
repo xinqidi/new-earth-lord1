@@ -14,6 +14,8 @@ struct DeviceManagementView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showUnlockAlert = false
     @State private var selectedDeviceForUnlock: DeviceType?
+    @State private var showCallsignSettings = false
+    @State private var currentCallsign: String = ""
 
     var body: some View {
         ScrollView {
@@ -46,10 +48,27 @@ struct DeviceManagementView: View {
                         deviceCard(deviceType)
                     }
                 }
+
+                // Day 36: 呼号设置入口
+                Divider()
+                    .background(ApocalypseTheme.textSecondary.opacity(0.3))
+                    .padding(.vertical, 8)
+
+                callsignSettingsCard
             }
             .padding(16)
         }
         .background(ApocalypseTheme.background)
+        .onAppear {
+            loadCallsign()
+        }
+        .sheet(isPresented: $showCallsignSettings) {
+            CallsignSettingsSheet()
+                .environmentObject(authManager)
+                .onDisappear {
+                    loadCallsign()
+                }
+        }
         .alert("设备未解锁".localized, isPresented: $showUnlockAlert) {
             Button("确定".localized, role: .cancel) {}
         } message: {
@@ -170,6 +189,48 @@ struct DeviceManagementView: View {
         .disabled(isCurrent)
     }
 
+    // MARK: - 呼号设置卡片
+
+    private var callsignSettingsCard: some View {
+        Button(action: {
+            showCallsignSettings = true
+        }) {
+            HStack(spacing: 12) {
+                // 图标
+                ZStack {
+                    Circle()
+                        .fill(ApocalypseTheme.primary.opacity(0.15))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: "person.text.rectangle")
+                        .font(.system(size: 22))
+                        .foregroundColor(ApocalypseTheme.primary)
+                }
+
+                // 信息
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("呼号设置".localized)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(ApocalypseTheme.textPrimary)
+
+                    Text(currentCallsign.isEmpty ? "未设置".localized : currentCallsign)
+                        .font(.caption)
+                        .foregroundColor(currentCallsign.isEmpty ? ApocalypseTheme.textSecondary.opacity(0.6) : ApocalypseTheme.primary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(ApocalypseTheme.textSecondary.opacity(0.5))
+            }
+            .padding(12)
+            .background(ApocalypseTheme.cardBackground)
+            .cornerRadius(10)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
     // MARK: - 事件处理
 
     private func handleTap(_ deviceType: DeviceType, _ isUnlocked: Bool, _ isCurrent: Bool) {
@@ -183,6 +244,33 @@ struct DeviceManagementView: View {
 
         Task {
             await communicationManager.switchDevice(to: deviceType)
+        }
+    }
+
+    // MARK: - 加载呼号
+
+    private func loadCallsign() {
+        guard let userId = authManager.currentUser?.id else { return }
+
+        Task {
+            do {
+                struct CallsignResponse: Codable {
+                    let callsign: String?
+                }
+
+                let response: [CallsignResponse] = try await authManager.supabase
+                    .from("profiles")
+                    .select("callsign")
+                    .eq("id", value: userId.uuidString)
+                    .execute()
+                    .value
+
+                await MainActor.run {
+                    currentCallsign = response.first?.callsign ?? ""
+                }
+            } catch {
+                print("❌ [呼号] 加载失败: \(error.localizedDescription)")
+            }
         }
     }
 }

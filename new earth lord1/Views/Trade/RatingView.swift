@@ -184,9 +184,11 @@ struct RatingView: View {
             TextEditor(text: $comment)
                 .frame(height: 120)
                 .padding(8)
+                .scrollContentBackground(.hidden)
                 .background(ApocalypseTheme.background)
                 .cornerRadius(8)
                 .foregroundColor(ApocalypseTheme.textPrimary)
+                .tint(ApocalypseTheme.primary)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(ApocalypseTheme.textMuted.opacity(0.3), lineWidth: 1)

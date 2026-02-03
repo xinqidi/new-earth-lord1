@@ -265,9 +265,11 @@ struct CreateOfferView: View {
             TextEditor(text: $message)
                 .frame(height: 80)
                 .padding(8)
+                .scrollContentBackground(.hidden)
                 .background(ApocalypseTheme.background)
                 .cornerRadius(8)
                 .foregroundColor(ApocalypseTheme.textPrimary)
+                .tint(ApocalypseTheme.primary)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(ApocalypseTheme.textMuted.opacity(0.3), lineWidth: 1)

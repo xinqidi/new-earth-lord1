@@ -19,6 +19,7 @@ struct ChannelChatView: View {
 
     @State private var messageText = ""
     @State private var scrollProxy: ScrollViewProxy?
+    @FocusState private var isInputFocused: Bool
 
     // 当前用户ID
     private var currentUserId: UUID? {
@@ -62,6 +63,15 @@ struct ChannelChatView: View {
         }
         .onChange(of: communicationManager.getMessages(for: channel.id).count) { _ in
             scrollToBottom()
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("完成".localized) {
+                    isInputFocused = false
+                }
+                .foregroundColor(ApocalypseTheme.primary)
+            }
         }
     }
 
@@ -142,6 +152,7 @@ struct ChannelChatView: View {
                 }
                 .padding(16)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onAppear {
                 scrollProxy = proxy
                 scrollToBottom()
@@ -183,6 +194,13 @@ struct ChannelChatView: View {
                 .background(ApocalypseTheme.cardBackground)
                 .cornerRadius(20)
                 .foregroundColor(ApocalypseTheme.textPrimary)
+                .focused($isInputFocused)
+                .submitLabel(.send)
+                .onSubmit {
+                    if !messageText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        sendMessage()
+                    }
+                }
 
             // 发送按钮
             Button(action: sendMessage) {

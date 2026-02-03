@@ -19,6 +19,11 @@ struct ChannelDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var isProcessing = false
     @State private var showChatView = false
+    @State private var showOfficialView = false
+
+    private var isOfficial: Bool {
+        channel.channelType == .official
+    }
 
     private var isSubscribed: Bool {
         communicationManager.isSubscribed(channelId: channel.id)
@@ -66,6 +71,10 @@ struct ChannelDetailView: View {
                 ChannelChatView(channel: channel)
                     .environmentObject(authManager)
             }
+            // Day 36: 官方频道专用页面
+            .fullScreenCover(isPresented: $showOfficialView) {
+                OfficialChannelDetailView(channel: channel)
+            }
         }
     }
 
@@ -76,12 +85,12 @@ struct ChannelDetailView: View {
             // 图标
             ZStack {
                 Circle()
-                    .fill(ApocalypseTheme.primary.opacity(0.2))
+                    .fill((isOfficial ? Color.red : ApocalypseTheme.primary).opacity(0.2))
                     .frame(width: 80, height: 80)
 
                 Image(systemName: channel.channelType.iconName)
                     .font(.system(size: 36))
-                    .foregroundColor(ApocalypseTheme.primary)
+                    .foregroundColor(isOfficial ? .red : ApocalypseTheme.primary)
             }
 
             // 名称
@@ -182,17 +191,23 @@ struct ChannelDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            // 进入聊天按钮（已订阅用户显示）
+            // 进入聊天/公告按钮（已订阅用户显示）
             if isSubscribed {
-                Button(action: { showChatView = true }) {
+                Button(action: {
+                    if isOfficial {
+                        showOfficialView = true
+                    } else {
+                        showChatView = true
+                    }
+                }) {
                     HStack {
-                        Image(systemName: "bubble.left.and.bubble.right.fill")
-                        Text("进入聊天".localized)
+                        Image(systemName: isOfficial ? "megaphone.fill" : "bubble.left.and.bubble.right.fill")
+                        Text(isOfficial ? "查看公告".localized : "进入聊天".localized)
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(ApocalypseTheme.primary)
+                    .background(isOfficial ? Color.red : ApocalypseTheme.primary)
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 }

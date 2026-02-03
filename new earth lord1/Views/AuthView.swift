@@ -812,9 +812,11 @@ struct AuthView: View {
         }
     }
 
-    /// 处理 Apple 登录（占位）
+    /// 处理 Apple 登录
     private func handleAppleSignIn() {
-        showToastMessage("Apple 登录即将开放")
+        Task {
+            await authManager.signInWithApple()
+        }
     }
 
     /// 处理 Google 登录

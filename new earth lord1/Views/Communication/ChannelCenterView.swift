@@ -17,6 +17,21 @@ struct ChannelCenterView: View {
     @State private var searchText = ""
     @State private var showCreateSheet = false
     @State private var selectedChannel: CommunicationChannel?
+    @State private var selectedOfficialChannel: CommunicationChannel?
+
+    /// 排序后的订阅频道（官方频道置顶）
+    private var sortedSubscribedChannels: [SubscribedChannel] {
+        communicationManager.subscribedChannels.sorted { a, b in
+            // 官方频道置顶
+            if a.channel.channelType == .official && b.channel.channelType != .official {
+                return true
+            }
+            if a.channel.channelType != .official && b.channel.channelType == .official {
+                return false
+            }
+            return a.channel.name < b.channel.name
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -98,6 +113,10 @@ struct ChannelCenterView: View {
         .sheet(item: $selectedChannel) { channel in
             ChannelDetailView(channel: channel)
         }
+        // Day 36: 官方频道专用页面
+        .fullScreenCover(item: $selectedOfficialChannel) { channel in
+            OfficialChannelDetailView(channel: channel)
+        }
     }
 
     // MARK: - Tab 按钮
@@ -131,19 +150,28 @@ struct ChannelCenterView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(communicationManager.subscribedChannels) { subscribedChannel in
+                        ForEach(sortedSubscribedChannels) { subscribedChannel in
                             ChannelRowView(
                                 channel: subscribedChannel.channel,
                                 isSubscribed: true
                             )
                             .onTapGesture {
-                                selectedChannel = subscribedChannel.channel
+                                handleChannelTap(subscribedChannel.channel)
                             }
                         }
                     }
                     .padding(16)
                 }
             }
+        }
+    }
+
+    /// 处理频道点击
+    private func handleChannelTap(_ channel: CommunicationChannel) {
+        if channel.channelType == .official {
+            selectedOfficialChannel = channel
+        } else {
+            selectedChannel = channel
         }
     }
 
@@ -173,7 +201,7 @@ struct ChannelCenterView: View {
                                 isSubscribed: communicationManager.isSubscribed(channelId: channel.id)
                             )
                             .onTapGesture {
-                                selectedChannel = channel
+                                handleChannelTap(channel)
                             }
                         }
                     }
@@ -213,17 +241,25 @@ struct ChannelRowView: View {
     let channel: CommunicationChannel
     let isSubscribed: Bool
 
+    private var isOfficial: Bool {
+        channel.channelType == .official
+    }
+
+    private var iconColor: Color {
+        isOfficial ? .red : ApocalypseTheme.primary
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // 图标
             ZStack {
                 Circle()
-                    .fill(ApocalypseTheme.primary.opacity(0.15))
+                    .fill(iconColor.opacity(0.15))
                     .frame(width: 50, height: 50)
 
                 Image(systemName: channel.channelType.iconName)
                     .font(.system(size: 22))
-                    .foregroundColor(ApocalypseTheme.primary)
+                    .foregroundColor(iconColor)
             }
 
             // 信息
@@ -264,15 +300,19 @@ struct ChannelRowView: View {
             // 频道类型标签
             Text(channel.channelType.displayName)
                 .font(.caption2)
-                .foregroundColor(ApocalypseTheme.primary)
+                .foregroundColor(isOfficial ? .white : ApocalypseTheme.primary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(ApocalypseTheme.primary.opacity(0.1))
+                .background(isOfficial ? Color.red : ApocalypseTheme.primary.opacity(0.1))
                 .cornerRadius(4)
         }
         .padding(12)
-        .background(ApocalypseTheme.cardBackground)
+        .background(isOfficial ? Color.red.opacity(0.05) : ApocalypseTheme.cardBackground)
         .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isOfficial ? Color.red.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
     }
 }
 

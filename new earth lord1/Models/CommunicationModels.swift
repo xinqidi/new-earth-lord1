@@ -183,9 +183,55 @@ enum ChannelType: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - 消息分类（官方频道专用）
+
+import SwiftUI
+
+enum MessageCategory: String, Codable, CaseIterable {
+    case survival = "survival"   // 生存指南
+    case news = "news"           // 游戏资讯
+    case mission = "mission"     // 任务发布
+    case alert = "alert"         // 紧急广播
+
+    var displayName: String {
+        switch self {
+        case .survival: return "生存指南".localized
+        case .news: return "游戏资讯".localized
+        case .mission: return "任务发布".localized
+        case .alert: return "紧急广播".localized
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .survival: return .green
+        case .news: return .blue
+        case .mission: return .orange
+        case .alert: return .red
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .survival: return "leaf.fill"
+        case .news: return "newspaper.fill"
+        case .mission: return "target"
+        case .alert: return "exclamationmark.triangle.fill"
+        }
+    }
+}
+
 // MARK: - 频道模型
 
-struct CommunicationChannel: Codable, Identifiable {
+struct CommunicationChannel: Codable, Identifiable, Hashable {
+    // Day 36: 添加 Hashable 支持（用于 navigationDestination）
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: CommunicationChannel, rhs: CommunicationChannel) -> Bool {
+        lhs.id == rhs.id
+    }
     let id: UUID
     let creatorId: UUID
     let channelType: ChannelType
@@ -310,15 +356,17 @@ struct LocationPoint: Codable {
 
 struct MessageMetadata: Codable {
     let deviceType: String?
+    let category: String?  // Day 36: 消息分类（官方频道专用）
 
     enum CodingKeys: String, CodingKey {
         case deviceType = "device_type"
+        case category
     }
 }
 
 // MARK: - 频道消息模型
 
-struct ChannelMessage: Codable, Identifiable {
+struct ChannelMessage: Decodable, Identifiable {
     let messageId: UUID
     let channelId: UUID
     let senderId: UUID?
@@ -341,6 +389,12 @@ struct ChannelMessage: Codable, Identifiable {
         case metadata
         case createdAt = "created_at"
         case senderDeviceType = "sender_device_type"
+        case profiles  // 联表查询时的嵌套数据
+    }
+
+    // 用于解析联表查询的 profiles 嵌套结构
+    private struct ProfileData: Codable {
+        let callsign: String?
     }
 
     // 自定义解码（处理 PostGIS POINT 格式和多种日期格式）
@@ -350,7 +404,15 @@ struct ChannelMessage: Codable, Identifiable {
         messageId = try container.decode(UUID.self, forKey: .messageId)
         channelId = try container.decode(UUID.self, forKey: .channelId)
         senderId = try container.decodeIfPresent(UUID.self, forKey: .senderId)
-        senderCallsign = try container.decodeIfPresent(String.self, forKey: .senderCallsign)
+
+        // 优先从 profiles 联表获取最新呼号，其次从 sender_callsign 字段
+        if let profileData = try? container.decodeIfPresent(ProfileData.self, forKey: .profiles),
+           let callsign = profileData.callsign {
+            senderCallsign = callsign
+        } else {
+            senderCallsign = try container.decodeIfPresent(String.self, forKey: .senderCallsign)
+        }
+
         content = try container.decode(String.self, forKey: .content)
         metadata = try container.decodeIfPresent(MessageMetadata.self, forKey: .metadata)
 
@@ -430,5 +492,49 @@ struct ChannelMessage: Codable, Identifiable {
     /// 获取设备类型
     var deviceType: String? {
         metadata?.deviceType
+    }
+
+    /// Day 36: 获取消息分类（官方频道专用）
+    var category: MessageCategory? {
+        guard let categoryString = metadata?.category else { return nil }
+        return MessageCategory(rawValue: categoryString)
+    }
+
+    /// 创建一个更新了呼号的消息副本
+    func withUpdatedCallsign(_ newCallsign: String) -> ChannelMessage {
+        return ChannelMessage(
+            messageId: self.messageId,
+            channelId: self.channelId,
+            senderId: self.senderId,
+            senderCallsign: newCallsign,
+            content: self.content,
+            senderLocation: self.senderLocation,
+            metadata: self.metadata,
+            createdAt: self.createdAt,
+            senderDeviceType: self.senderDeviceType
+        )
+    }
+
+    /// 手动初始化方法（用于创建副本）
+    init(
+        messageId: UUID,
+        channelId: UUID,
+        senderId: UUID?,
+        senderCallsign: String?,
+        content: String,
+        senderLocation: LocationPoint?,
+        metadata: MessageMetadata?,
+        createdAt: Date,
+        senderDeviceType: DeviceType?
+    ) {
+        self.messageId = messageId
+        self.channelId = channelId
+        self.senderId = senderId
+        self.senderCallsign = senderCallsign
+        self.content = content
+        self.senderLocation = senderLocation
+        self.metadata = metadata
+        self.createdAt = createdAt
+        self.senderDeviceType = senderDeviceType
     }
 }

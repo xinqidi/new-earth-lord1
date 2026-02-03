@@ -18,6 +18,11 @@ final class CommunicationManager: ObservableObject {
 
     static let shared = CommunicationManager()
 
+    // MARK: - 官方频道常量（Day 36）
+
+    /// 官方频道固定 UUID
+    static let officialChannelId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
     // MARK: - Published Properties
 
     /// 用户设备列表
@@ -339,6 +344,58 @@ final class CommunicationManager: ObservableObject {
         }
     }
 
+    // MARK: - 官方频道相关（Day 36）
+
+    /// 检查是否是官方频道
+    func isOfficialChannel(_ channelId: UUID) -> Bool {
+        return channelId == CommunicationManager.officialChannelId
+    }
+
+    /// 确保用户订阅了官方频道（强制订阅）
+    func ensureOfficialChannelSubscribed() async {
+        guard let supabase = supabase, let userId = userId else {
+            print("⚠️ [官方频道] 未配置，无法检查订阅")
+            return
+        }
+
+        let officialId = CommunicationManager.officialChannelId
+
+        // 检查是否已订阅
+        if subscribedChannels.contains(where: { $0.channel.id == officialId }) {
+            print("✅ [官方频道] 已订阅")
+            return
+        }
+
+        // 强制订阅官方频道
+        do {
+            print("📡 [官方频道] 正在自动订阅...")
+
+            // 直接插入订阅记录
+            struct SubscriptionInsert: Encodable {
+                let user_id: String
+                let channel_id: String
+                let is_muted: Bool
+            }
+
+            let subscription = SubscriptionInsert(
+                user_id: userId.uuidString,
+                channel_id: officialId.uuidString,
+                is_muted: false
+            )
+
+            try await supabase
+                .from("channel_subscriptions")
+                .insert(subscription)
+                .execute()
+
+            // 刷新订阅列表
+            await loadSubscribedChannels()
+            print("✅ [官方频道] 已自动订阅")
+        } catch {
+            print("❌ [官方频道] 订阅失败: \(error.localizedDescription)")
+        }
+    }
+
     /// 创建频道
     func createChannel(type: ChannelType, name: String, description: String?, latitude: Double? = nil, longitude: Double? = nil) async -> Bool {
         guard let supabase = supabase, let userId = userId else {
@@ -517,6 +574,7 @@ final class CommunicationManager: ObservableObject {
         do {
             print("💬 [消息] 加载频道消息: \(channelId)...")
 
+            // 1. 先加载消息
             let messages: [ChannelMessage] = try await supabase
                 .from("channel_messages")
                 .select()
@@ -526,8 +584,63 @@ final class CommunicationManager: ObservableObject {
                 .execute()
                 .value
 
-            channelMessages[channelId] = messages
-            print("💬 [消息] ✅ 加载成功，共 \(messages.count) 条消息")
+            print("💬 [消息] 加载了 \(messages.count) 条消息")
+
+            // 2. 获取所有发送者ID
+            let senderIds = Set(messages.compactMap { $0.senderId })
+            print("💬 [消息] 发送者ID列表: \(senderIds.map { $0.uuidString })")
+
+            if senderIds.isEmpty {
+                await MainActor.run {
+                    channelMessages[channelId] = messages
+                }
+                print("💬 [消息] ✅ 加载成功，共 \(messages.count) 条消息")
+                return
+            }
+
+            // 3. 批量查询发送者的最新呼号
+            struct ProfileCallsign: Decodable {
+                let id: UUID
+                let callsign: String?
+            }
+
+            let profiles: [ProfileCallsign] = try await supabase
+                .from("profiles")
+                .select("id, callsign")
+                .in("id", values: senderIds.map { $0.uuidString })
+                .execute()
+                .value
+
+            print("💬 [消息] 查询到 \(profiles.count) 个用户资料")
+
+            // 4. 创建ID到呼号的映射
+            var callsignMap: [UUID: String] = [:]
+            for profile in profiles {
+                print("💬 [消息] 用户 \(profile.id) 的呼号: \(profile.callsign ?? "nil")")
+                if let callsign = profile.callsign, !callsign.isEmpty {
+                    callsignMap[profile.id] = callsign
+                }
+            }
+
+            print("💬 [消息] 获取到 \(callsignMap.count) 个呼号映射: \(callsignMap)")
+
+            // 5. 更新消息的呼号
+            var updatedCount = 0
+            let updatedMessages = messages.map { message -> ChannelMessage in
+                if let senderId = message.senderId,
+                   let callsign = callsignMap[senderId] {
+                    updatedCount += 1
+                    return message.withUpdatedCallsign(callsign)
+                }
+                return message
+            }
+            print("💬 [消息] 更新了 \(updatedCount) 条消息的呼号")
+
+            // 在主线程更新以触发 UI 刷新
+            await MainActor.run {
+                channelMessages[channelId] = updatedMessages
+            }
+            print("💬 [消息] ✅ 加载成功，共 \(updatedMessages.count) 条消息")
         } catch {
             print("❌ [消息] 加载失败: \(error.localizedDescription)")
             errorMessage = "加载消息失败"
@@ -642,7 +755,7 @@ final class CommunicationManager: ObservableObject {
     private func handleNewMessage(insertion: InsertAction) async {
         do {
             let decoder = JSONDecoder()
-            let message = try insertion.decodeRecord(as: ChannelMessage.self, decoder: decoder)
+            var message = try insertion.decodeRecord(as: ChannelMessage.self, decoder: decoder)
 
             // ✅ 第一关：检查是否是已订阅频道的消息
             guard messageSubscribedChannelIds.contains(message.channelId) else {
@@ -656,16 +769,40 @@ final class CommunicationManager: ObservableObject {
                 return
             }
 
-            // 添加到消息列表
-            if channelMessages[message.channelId] != nil {
-                // 检查是否已存在（避免重复）
-                if !channelMessages[message.channelId]!.contains(where: { $0.id == message.id }) {
-                    channelMessages[message.channelId]?.append(message)
+            // ✅ 获取发送者最新呼号
+            if let senderId = message.senderId, let supabase = supabase {
+                do {
+                    struct ProfileCallsign: Decodable {
+                        let callsign: String?
+                    }
+                    let profiles: [ProfileCallsign] = try await supabase
+                        .from("profiles")
+                        .select("callsign")
+                        .eq("id", value: senderId.uuidString)
+                        .limit(1)
+                        .execute()
+                        .value
+
+                    if let callsign = profiles.first?.callsign, !callsign.isEmpty {
+                        message = message.withUpdatedCallsign(callsign)
+                    }
+                } catch {
+                    print("⚠️ [Realtime] 获取呼号失败: \(error.localizedDescription)")
+                }
+            }
+
+            // 添加到消息列表（在主线程更新）
+            await MainActor.run {
+                if channelMessages[message.channelId] != nil {
+                    // 检查是否已存在（避免重复）
+                    if !channelMessages[message.channelId]!.contains(where: { $0.id == message.id }) {
+                        channelMessages[message.channelId]?.append(message)
+                        print("📡 [Realtime] ✅ 收到新消息: \(message.content.prefix(20))...")
+                    }
+                } else {
+                    channelMessages[message.channelId] = [message]
                     print("📡 [Realtime] ✅ 收到新消息: \(message.content.prefix(20))...")
                 }
-            } else {
-                channelMessages[message.channelId] = [message]
-                print("📡 [Realtime] ✅ 收到新消息: \(message.content.prefix(20))...")
             }
         } catch {
             print("❌ [Realtime] 解析消息失败: \(error)")
